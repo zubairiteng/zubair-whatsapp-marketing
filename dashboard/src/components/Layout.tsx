@@ -13,6 +13,7 @@ import {
   Send,
   Server,
   Puzzle,
+  Megaphone,
   Sun,
   Moon,
   Monitor,
@@ -25,7 +26,6 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { useRole, type UserRole } from '../hooks/useRole';
 import { languageOptions, resolveSupportedLanguage, rtlLanguages, type SupportedLanguage } from '../i18n';
-import { healthApi, infraApi } from '../services/api';
 import './Layout.css';
 
 interface LayoutProps {
@@ -38,6 +38,7 @@ const allNavItems = [
   { to: '/', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
   { to: '/sessions', icon: Smartphone, key: 'sessions' as const, adminOnly: false },
   { to: '/chats', icon: MessageSquare, key: 'chats' as const, adminOnly: false },
+  { to: '/campaigns', icon: Megaphone, key: 'campaigns' as const, adminOnly: false },
   { to: '/webhooks', icon: Webhook, key: 'webhooks' as const, adminOnly: false },
   { to: '/templates', icon: ClipboardList, key: 'templates' as const, adminOnly: false },
   { to: '/api-keys', icon: Key, key: 'apiKeys' as const, adminOnly: true, unscopedOnly: true },
@@ -69,12 +70,6 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  // Show the build-time version immediately, then replace it with the live running version from the
-  // backend so a stale-built bundle can't display the wrong number. Falls back silently on error.
-  const [version, setVersion] = useState(__APP_VERSION__);
-  // A newer published release, shown to admins as a link to its notes. The route is ADMIN-only, refuses a
-  // session-scoped key, and answers quietly when GitHub is unreachable or the check is turned off.
-  const [update, setUpdate] = useState<{ latest: string; url: string } | null>(null);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const languageMenuRef = useRef<HTMLDivElement>(null);
 
@@ -87,39 +82,6 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    healthApi
-      .check()
-      .then(info => {
-        if (active && info?.version) setVersion(info.version);
-      })
-      .catch(() => {
-        /* keep the build-time fallback */
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (userRole !== 'admin' || scoped) return;
-    let active = true;
-    infraApi
-      .getUpdateCheck()
-      .then(check => {
-        if (active && check.updateAvailable && check.latest && check.releaseUrl) {
-          setUpdate({ latest: check.latest, url: check.releaseUrl });
-        }
-      })
-      .catch(() => {
-        /* no notice */
-      });
-    return () => {
-      active = false;
-    };
-  }, [userRole, scoped]);
 
   const handleNavClick = () => {
     if (isMobile) setIsMobileOpen(false);
@@ -171,8 +133,11 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
             {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <div className="mobile-brand">
-            <img src="/openwa_logo.webp" alt="OpenWA" className="sidebar-logo" />
-            <span className="brand-name">{t('common.appName')}</span>
+            <div className="brand-avatar">ZA</div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="brand-name" style={{ lineHeight: 1.2 }}>Zubair Ahmed</span>
+              <span className="brand-version" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Lecturer</span>
+            </div>
           </div>
           <div style={{ width: 40 }} />
         </header>
@@ -184,16 +149,11 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
         className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobile ? 'mobile' : ''} ${isMobileOpen ? 'open' : ''}`}
       >
         <div className="sidebar-header">
-          <img src="/openwa_logo.webp" alt="OpenWA" className="sidebar-logo" />
+          <div className="brand-avatar">ZA</div>
           {!isCollapsed && (
             <div className="sidebar-brand">
-              <span className="brand-name">{t('common.appName')}</span>
-              <span className="brand-version">v{version}</span>
-              {update && (
-                <a className="brand-update" href={update.url} target="_blank" rel="noopener noreferrer">
-                  {t('common.updateAvailable', { version: update.latest })}
-                </a>
-              )}
+              <span className="brand-name" style={{ fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.2 }}>Zubair Ahmed</span>
+              <span className="brand-version" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>Lecturer</span>
             </div>
           )}
         </div>

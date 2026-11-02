@@ -36,6 +36,22 @@
   padding: 1.5rem 1rem;
 }
 
+.brand-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+}
+
 .sidebar-logo {
   width: 28px;
   height: 28px;
@@ -312,9 +328,11 @@
   flex: 1;
   margin-left: 260px;
   width: calc(100% - 260px);
+  min-width: 0;
   background: var(--bg-light);
   min-height: 100vh;
   overflow-x: hidden;
+  box-sizing: border-box;
   transition:
     margin-left 0.3s ease,
     width 0.3s ease;
@@ -332,6 +350,35 @@
 
 .sidebar-overlay {
   display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .sidebar {
+    width: 72px !important;
+  }
+  .sidebar .sidebar-brand,
+  .sidebar .nav-item span,
+  .sidebar .theme-toggle-btn span:not(.appearance-button-cue),
+  .sidebar .logout-btn span {
+    display: none !important;
+  }
+  .sidebar .sidebar-header {
+    justify-content: center !important;
+    padding: 1.25rem 0.5rem !important;
+  }
+  .sidebar .nav-item {
+    justify-content: center !important;
+    padding: 0.75rem 0.5rem !important;
+  }
+  .sidebar .theme-toggle-btn,
+  .sidebar .logout-btn {
+    justify-content: center !important;
+    padding: 0.6rem !important;
+  }
+  .main-content {
+    margin-left: 72px !important;
+    width: calc(100% - 72px) !important;
+  }
 }
 
 @media (max-width: 767px) {

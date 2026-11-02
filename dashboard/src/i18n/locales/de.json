@@ -68,7 +68,8 @@
     "messageTester": "Nachrichtentester",
     "infrastructure": "Infrastruktur",
     "plugins": "Plugins",
-    "logs": "Protokolle"
+    "logs": "Protokolle",
+    "campaigns": "Kampagnen"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "Empfänger",
     "bulkRecipientsUpload": "CSV/TXT hochladen",
     "bulkRecipientsPlaceholder": "+491701234567",
-    "bulkRecipientsHint": "Eine Telefonnummer oder Chat-ID pro Zeile (max. 100)",
+    "bulkRecipientsHint": "Eine Telefonnummer oder Chat-ID pro Zeile (max. 500)",
     "bulkRecipientsCount": "Empfänger: {{count}}",
     "bulkDelay": "Verzögerung zwischen Nachrichten (ms)",
     "bulkDelayHint": "1000–60000 ms (Standard: 3000)",
@@ -860,7 +861,18 @@
       "progress": "{{sent}} von {{total}} gesendet · {{failed}} fehlgeschlagen · {{pending}} ausstehend",
       "cancel": "Batch abbrechen",
       "cancelling": "Wird abgebrochen..."
-    }
+    },
+    "bulkMinDelay": "Mindestverzögerung zwischen Nachrichten (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (Standard: 7000)",
+    "bulkMaxDelay": "Maximale Verzögerung zwischen Nachrichten (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (Standard: 15000)",
+    "bulkDelayOrderError": "Mindestverzögerung darf maximale Verzögerung nicht überschreiten",
+    "bulkCampaign": "Kampagne",
+    "bulkCampaignNone": "Keine (Manuell / Direkt)",
+    "bulkChunkName": "Chunk-Name",
+    "bulkChunkNamePlaceholder": "z.B. Batch 1",
+    "chunkRecorded": "In Kampagne aufgezeichnet",
+    "viewAnalytics": "Antworten & Analysen anzeigen"
   },
   "infrastructure": {
     "title": "Infrastruktur",

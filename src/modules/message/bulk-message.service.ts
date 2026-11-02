@@ -339,8 +339,12 @@ export class BulkMessageService implements OnModuleInit, OnApplicationBootstrap,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+    const minDelay = dto.options?.minDelayBetweenMessages;
+    const maxDelay = dto.options?.maxDelayBetweenMessages;
     const options = {
-      delayBetweenMessages: dto.options?.delayBetweenMessages ?? 3000,
+      delayBetweenMessages: dto.options?.delayBetweenMessages ?? (minDelay ?? 3000),
+      minDelayBetweenMessages: minDelay,
+      maxDelayBetweenMessages: maxDelay,
       randomizeDelay: dto.options?.randomizeDelay ?? true,
       stopOnError: dto.options?.stopOnError ?? false,
     };
@@ -1086,7 +1090,29 @@ export class BulkMessageService implements OnModuleInit, OnApplicationBootstrap,
     }
   }
 
-  private calculateDelay(options: { delayBetweenMessages: number; randomizeDelay: boolean }): number {
+  private calculateDelay(options: {
+    delayBetweenMessages: number;
+    randomizeDelay: boolean;
+    minDelayBetweenMessages?: number;
+    maxDelayBetweenMessages?: number;
+  }): number {
+    const min = options.minDelayBetweenMessages;
+    const max = options.maxDelayBetweenMessages;
+    if (min !== undefined && max !== undefined) {
+      const low = Math.min(min, max);
+      const high = Math.max(min, max);
+      return Math.floor(Math.random() * (high - low + 1)) + low;
+    }
+    if (min !== undefined) {
+      const low = min;
+      const high = Math.max(min, options.delayBetweenMessages || min);
+      return Math.floor(Math.random() * (high - low + 1)) + low;
+    }
+    if (max !== undefined) {
+      const high = max;
+      const low = Math.min(options.delayBetweenMessages || high, high);
+      return Math.floor(Math.random() * (high - low + 1)) + low;
+    }
     let delay = options.delayBetweenMessages;
     if (options.randomizeDelay) {
       delay += Math.random() * 2000; // Add 0-2 seconds random

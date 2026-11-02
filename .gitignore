@@ -85,3 +85,12 @@ _docs/
 .superpowers/
 # TypeScript incremental build cache (tsc writes this at repo root under the TS6 build config)
 *.tsbuildinfo
+
+# Release and Packaging
+release/
+app_payload.zip
+build_payload.py
+launcher.py
+*.spec
+__pycache__/
+OpenWA/

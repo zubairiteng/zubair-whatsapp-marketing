@@ -76,7 +76,8 @@
     "messageTester": "اختبار الرسائل",
     "infrastructure": "البنية التحتية",
     "plugins": "الإضافات",
-    "logs": "السجلات"
+    "logs": "السجلات",
+    "campaigns": "الحملات"
   },
   "chats": {
     "media": {
@@ -844,7 +845,7 @@
     "bulkRecipients": "المستلمون",
     "bulkRecipientsUpload": "رفع CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "رقم هاتف أو معرّف دردشة واحد في كل سطر (100 كحد أقصى)",
+    "bulkRecipientsHint": "رقم هاتف أو معرّف دردشة واحد في كل سطر (500 كحد أقصى)",
     "bulkRecipientsCount": "المستلمون: {{count}}",
     "bulkDelay": "التأخير بين الرسائل (مللي ثانية)",
     "bulkDelayHint": "1000–60000 مللي ثانية (الافتراضي 3000)",
@@ -885,7 +886,18 @@
       "progress": "تم إرسال {{sent}} من {{total}} · {{failed}} فشلت · {{pending}} قيد الانتظار",
       "cancel": "إلغاء الدفعة",
       "cancelling": "جارٍ الإلغاء..."
-    }
+    },
+    "bulkMinDelay": "الحد الأدنى للتأخير بين الرسائل (مللي ثانية)",
+    "bulkMinDelayHint": "1000–60000 مللي ثانية (الافتراضي 7000)",
+    "bulkMaxDelay": "الحد الأقصى للتأخير بين الرسائل (مللي ثانية)",
+    "bulkMaxDelayHint": "1000–60000 مللي ثانية (الافتراضي 15000)",
+    "bulkDelayOrderError": "لا يمكن أن يتجاوز الحد الأدنى للتأخير الحد الأقصى",
+    "bulkCampaign": "الحملة",
+    "bulkCampaignNone": "لا يوجد (يدوي / مباشر)",
+    "bulkChunkName": "اسم الدفعة",
+    "bulkChunkNamePlaceholder": "مثال: الدفعة 1",
+    "chunkRecorded": "تم التسجيل في الحملة",
+    "viewAnalytics": "عرض الردود والتحليلات"
   },
   "infrastructure": {
     "title": "البنية التحتية",

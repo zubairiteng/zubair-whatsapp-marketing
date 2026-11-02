@@ -68,7 +68,8 @@
     "messageTester": "訊息測試器",
     "infrastructure": "基礎架構",
     "plugins": "外掛",
-    "logs": "記錄"
+    "logs": "記錄",
+    "campaigns": "營銷活動"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "收件人",
     "bulkRecipientsUpload": "上傳 CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "每行一個電話號碼或對話 ID（最多 100 個）",
+    "bulkRecipientsHint": "每行一個電話號碼或對話 ID（最多 500 個）",
     "bulkRecipientsCount": "收件人：{{count}}",
     "bulkDelay": "訊息之間的延遲（毫秒）",
     "bulkDelayHint": "1000–60000 毫秒（預設 3000）",
@@ -860,7 +861,18 @@
       "progress": "已發送 {{sent}}/{{total}} · {{failed}} 失敗 · {{pending}} 待發送",
       "cancel": "取消批次",
       "cancelling": "取消中..."
-    }
+    },
+    "bulkMinDelay": "訊息之間最小延遲(毫秒)",
+    "bulkMinDelayHint": "1000–60000 毫秒(預設 7000)",
+    "bulkMaxDelay": "訊息之間最大延遲(毫秒)",
+    "bulkMaxDelayHint": "1000–60000 毫秒(預設 15000)",
+    "bulkDelayOrderError": "最小延遲不能大於最大延遲",
+    "bulkCampaign": "活動",
+    "bulkCampaignNone": "無（手動 / 直接）",
+    "bulkChunkName": "批次名稱",
+    "bulkChunkNamePlaceholder": "例如：批次 1",
+    "chunkRecorded": "已記錄在營銷活動中",
+    "viewAnalytics": "查看回覆與統計"
   },
   "infrastructure": {
     "title": "基礎架構",

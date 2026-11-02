@@ -1,5 +1,5 @@
-// The backend caps a bulk batch at 100 messages (ArrayMaxSize on SendBulkMessageDto).
-export const BULK_MAX_RECIPIENTS = 100;
+// The backend caps a bulk batch at 500 messages (ArrayMaxSize on SendBulkMessageDto).
+export const BULK_MAX_RECIPIENTS = 500;
 
 // Pre-read cap for the recipients file picker. A phone list is bytes, not media: 2 MiB is roughly
 // 100k entries, far past the batch cap, while still stopping a mistaken multi-hundred-MB pick from

@@ -14,6 +14,8 @@ import { createMainDataSource, mainConnectionOptions, SQLITE_BUSY_TIMEOUT_MS } f
 import { SessionModule } from './modules/session/session.module';
 import { MessageModule } from './modules/message/message.module';
 import { TemplateModule } from './modules/template/template.module';
+import { CampaignModule } from './modules/campaign/campaign.module';
+import { UserModule } from './modules/user/user.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -157,6 +159,8 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
             __dirname + '/modules/integration/**/*.entity{.ts,.js}',
             __dirname + '/modules/status-store/**/*.entity{.ts,.js}',
             __dirname + '/modules/automation/**/*.entity{.ts,.js}',
+            __dirname + '/modules/campaign/**/*.entity{.ts,.js}',
+            __dirname + '/modules/user/**/*.entity{.ts,.js}',
           ],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           logging: configService.get<boolean>('dataDatabase.logging', false),
@@ -277,6 +281,8 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
     SessionModule,
     MessageModule,
     TemplateModule,
+    CampaignModule,
+    UserModule,
     WebhookModule,
     HealthModule,
     SettingsModule,

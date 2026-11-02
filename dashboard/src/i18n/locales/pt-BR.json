@@ -70,7 +70,8 @@
     "infrastructure": "Infraestrutura",
     "plugins": "Plugins",
     "logs": "Registros",
-    "templates": "Modelos"
+    "templates": "Modelos",
+    "campaigns": "Campanhas"
   },
   "chats": {
     "media": {
@@ -775,7 +776,7 @@
     "bulkRecipients": "Destinatários",
     "bulkRecipientsUpload": "Enviar CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "Um número de telefone ou ID de chat por linha (máx. 100)",
+    "bulkRecipientsHint": "Um número de telefone ou ID de chat por linha (máx. 500)",
     "bulkRecipientsCount": "Destinatários: {{count}}",
     "bulkDelay": "Intervalo entre mensagens (ms)",
     "bulkDelayHint": "1000–60000 ms (padrão: 3000)",
@@ -816,7 +817,18 @@
       "progress": "Enviadas {{sent}} de {{total}} · {{failed}} falharam · {{pending}} pendentes",
       "cancel": "Cancelar lote",
       "cancelling": "Cancelando..."
-    }
+    },
+    "bulkMinDelay": "Intervalo mínimo entre mensagens (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (padrão: 7000)",
+    "bulkMaxDelay": "Intervalo máximo entre mensagens (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (padrão: 15000)",
+    "bulkDelayOrderError": "O intervalo mínimo não pode ser maior que o intervalo máximo",
+    "bulkCampaign": "Campanha",
+    "bulkCampaignNone": "Nenhuma (Manual / Direto)",
+    "bulkChunkName": "Nome do lote",
+    "bulkChunkNamePlaceholder": "ex: Lote 1",
+    "chunkRecorded": "Registrado na campanha",
+    "viewAnalytics": "Ver respostas e análises"
   },
   "templates": {
     "title": "Modelos",

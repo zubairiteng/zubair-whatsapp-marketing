@@ -72,7 +72,8 @@
     "messageTester": "בדיקת הודעות",
     "infrastructure": "תשתית",
     "plugins": "תוספים",
-    "logs": "לוגים"
+    "logs": "לוגים",
+    "campaigns": "קמפיינים"
   },
   "chats": {
     "media": {
@@ -832,7 +833,7 @@
     "bulkRecipients": "נמענים",
     "bulkRecipientsUpload": "העלאת CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "מספר טלפון או מזהה צ'אט אחד בכל שורה (עד 100)",
+    "bulkRecipientsHint": "מספר טלפון או מזהה צ'אט אחד בכל שורה (עד 500)",
     "bulkRecipientsCount": "נמענים: {{count}}",
     "bulkDelay": "השהיה בין הודעות (אלפיות שנייה)",
     "bulkDelayHint": "1000–60000 אלפיות שנייה (ברירת מחדל 3000)",
@@ -873,7 +874,18 @@
       "progress": "נשלחו {{sent}} מתוך {{total}} · {{failed}} נכשלו · {{pending}} ממתינים",
       "cancel": "ביטול אצווה",
       "cancelling": "מבטל..."
-    }
+    },
+    "bulkMinDelay": "השהיה מינימלית בין הודעות (מילישניות)",
+    "bulkMinDelayHint": "1000–60000 מילישניות (ברירת מחדל 7000)",
+    "bulkMaxDelay": "השהיה מקסימלית בין הודעות (מילישניות)",
+    "bulkMaxDelayHint": "1000–60000 מילישניות (ברירת מחדל 15000)",
+    "bulkDelayOrderError": "ההשהיה המינימלית אינה יכולה לעלות על ההשהיה המקסימלית",
+    "bulkCampaign": "קמפיין",
+    "bulkCampaignNone": "ללא (ידני / ישיר)",
+    "bulkChunkName": "שם המקבץ",
+    "bulkChunkNamePlaceholder": "לדוגמה: מקבץ 1",
+    "chunkRecorded": "נרשם בקמפיין",
+    "viewAnalytics": "צפה בתגובות ובניתוח"
   },
   "infrastructure": {
     "title": "תשתית",

@@ -68,7 +68,9 @@
     "messageTester": "Message Tester",
     "infrastructure": "Infrastructure",
     "plugins": "Plugins",
-    "logs": "Logs"
+    "logs": "Logs",
+    "campaigns": "Campaigns",
+    "clients": "Clients"
   },
   "chats": {
     "media": {
@@ -819,7 +821,7 @@
     "bulkRecipients": "Recipients",
     "bulkRecipientsUpload": "Upload CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "One phone number or chat ID per line (max 100)",
+    "bulkRecipientsHint": "One phone number or chat ID per line (max 500)",
     "bulkRecipientsCount": "Recipients: {{count}}",
     "bulkDelay": "Delay Between Messages (ms)",
     "bulkDelayHint": "1000–60000 ms (default 3000)",
@@ -860,7 +862,18 @@
       "progress": "Sent {{sent}} of {{total}} · {{failed}} failed · {{pending}} pending",
       "cancel": "Cancel Batch",
       "cancelling": "Cancelling..."
-    }
+    },
+    "bulkMinDelay": "Min Delay Between Messages (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (default 7000)",
+    "bulkMaxDelay": "Max Delay Between Messages (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (default 15000)",
+    "bulkDelayOrderError": "Minimum delay cannot exceed maximum delay",
+    "bulkCampaign": "Campaign",
+    "bulkCampaignNone": "None (Manual / Direct)",
+    "bulkChunkName": "Execution Chunk Name",
+    "bulkChunkNamePlaceholder": "e.g. Batch 1",
+    "chunkRecorded": "Recorded in Campaign",
+    "viewAnalytics": "View Responses & Analytics"
   },
   "infrastructure": {
     "title": "Infrastructure",

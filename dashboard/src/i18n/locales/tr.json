@@ -68,7 +68,8 @@
     "messageTester": "Mesaj Test Aracı",
     "infrastructure": "Altyapı",
     "plugins": "Eklentiler",
-    "logs": "Kayıtlar (Logs)"
+    "logs": "Kayıtlar (Logs)",
+    "campaigns": "Kampanyalar"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "Alıcılar",
     "bulkRecipientsUpload": "CSV/TXT Yükle",
     "bulkRecipientsPlaceholder": "+905XXXXXXXXX",
-    "bulkRecipientsHint": "Her satıra bir telefon numarası veya sohbet ID'si (maks 100)",
+    "bulkRecipientsHint": "Her satıra bir telefon numarası veya sohbet ID'si (maks 500)",
     "bulkRecipientsCount": "Alıcılar: {{count}}",
     "bulkDelay": "Mesajlar Arası Gecikme (ms)",
     "bulkDelayHint": "1000–60000 ms (varsayılan 3000)",
@@ -860,7 +861,18 @@
       "progress": "{{total}} içerisinden {{sent}} gönderildi · {{failed}} başarısız · {{pending}} beklemede",
       "cancel": "Toplu İşlemi İptal Et",
       "cancelling": "İptal ediliyor..."
-    }
+    },
+    "bulkMinDelay": "Mesajlar Arası Minimum Gecikme (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (varsayılan 7000)",
+    "bulkMaxDelay": "Mesajlar Arası Maksimum Gecikme (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (varsayılan 15000)",
+    "bulkDelayOrderError": "Minimum gecikme maksimum gecikmeyi aşamaz",
+    "bulkCampaign": "Kampanya",
+    "bulkCampaignNone": "Yok (Manuel / Doğrudan)",
+    "bulkChunkName": "Parça Adı",
+    "bulkChunkNamePlaceholder": "ör. Parti 1",
+    "chunkRecorded": "Kampanyaya kaydedildi",
+    "viewAnalytics": "Yanıtları ve Analizleri Görüntüle"
   },
   "infrastructure": {
     "title": "Altyapı",

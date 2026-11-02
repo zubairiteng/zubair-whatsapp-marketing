@@ -136,7 +136,7 @@ class BulkMessageItemDto {
 
 class BulkMessageOptionsDto {
   @ApiPropertyOptional({
-    description: 'Delay between messages in ms.',
+    description: 'Delay between messages in ms (fallback/fixed base).',
     default: 3000,
     minimum: 1000,
     maximum: 60000,
@@ -147,7 +147,31 @@ class BulkMessageOptionsDto {
   @Max(60000)
   delayBetweenMessages?: number;
 
-  @ApiPropertyOptional({ description: 'Add random 0-2s to delay', default: true })
+  @ApiPropertyOptional({
+    description: 'Minimum delay between messages in ms (for randomized delay range).',
+    default: 7000,
+    minimum: 1000,
+    maximum: 60000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1000)
+  @Max(60000)
+  minDelayBetweenMessages?: number;
+
+  @ApiPropertyOptional({
+    description: 'Maximum delay between messages in ms (for randomized delay range).',
+    default: 15000,
+    minimum: 1000,
+    maximum: 60000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1000)
+  @Max(60000)
+  maxDelayBetweenMessages?: number;
+
+  @ApiPropertyOptional({ description: 'Add random variation to delay', default: true })
   @ToStrictBoolean()
   @IsOptional()
   @IsBoolean()
@@ -161,7 +185,7 @@ class BulkMessageOptionsDto {
 }
 
 /** Max recipients in one bulk request. The guard applies the same cap BEFORE its per-chat lookups. */
-export const BULK_MESSAGES_MAX = 100;
+export const BULK_MESSAGES_MAX = 500;
 
 export class SendBulkMessageDto {
   @ApiPropertyOptional({ description: 'Custom batch ID (auto-generated if not provided)' })
@@ -171,7 +195,7 @@ export class SendBulkMessageDto {
 
   @ApiProperty({
     description:
-      'Array of messages (max 100 per request; exact duplicate entries are collapsed — first occurrence wins)',
+      'Array of messages (max 500 per request; exact duplicate entries are collapsed — first occurrence wins)',
     type: [BulkMessageItemDto],
     maxItems: BULK_MESSAGES_MAX,
   })

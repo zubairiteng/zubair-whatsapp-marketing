@@ -68,7 +68,8 @@
     "messageTester": "संदेश परीक्षक",
     "infrastructure": "बुनियादी ढांचा",
     "plugins": "प्लगइन्स",
-    "logs": "लॉग्स"
+    "logs": "लॉग्स",
+    "campaigns": "अभियान"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "प्राप्तकर्ता",
     "bulkRecipientsUpload": "CSV/TXT अपलोड करें",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "प्रति पंक्ति एक फ़ोन नंबर या चैट ID (अधिकतम 100)",
+    "bulkRecipientsHint": "प्रति पंक्ति एक फ़ोन नंबर या चैट ID (अधिकतम 500)",
     "bulkRecipientsCount": "प्राप्तकर्ता: {{count}}",
     "bulkDelay": "संदेशों के बीच देरी (ms)",
     "bulkDelayHint": "1000–60000 ms (डिफ़ॉल्ट 3000)",
@@ -860,7 +861,18 @@
       "progress": "{{total}} में से {{sent}} भेजे गए · {{failed}} विफल · {{pending}} लंबित",
       "cancel": "बैच रद्द करें",
       "cancelling": "रद्द किया जा रहा है..."
-    }
+    },
+    "bulkMinDelay": "संदेशों के बीच न्यूनतम विलंब (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (डिफ़ॉल्ट 7000)",
+    "bulkMaxDelay": "संदेशों के बीच अधिकतम विलंब (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (डिफ़ॉल्ट 15000)",
+    "bulkDelayOrderError": "न्यूनतम विलंब अधिकतम विलंब से अधिक नहीं हो सकता",
+    "bulkCampaign": "अभियान",
+    "bulkCampaignNone": "कोई नहीं (मैन्युअल / प्रत्यक्ष)",
+    "bulkChunkName": "चंक / बैच का नाम",
+    "bulkChunkNamePlaceholder": "उदा. बैच 1",
+    "chunkRecorded": "अभियान में दर्ज किया गया",
+    "viewAnalytics": "प्रतिक्रियाएं और विश्लेषण देखें"
   },
   "infrastructure": {
     "title": "बुनियादी ढांचा",

@@ -12,7 +12,9 @@ export interface SequentialSendResult<T> {
 }
 
 export interface SequentialSendOptions {
-  delayMs: number;
+  delayMs?: number;
+  minDelayMs?: number;
+  maxDelayMs?: number;
   signal?: AbortSignal;
   stopOn?: (err: unknown) => boolean;
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
@@ -44,12 +46,20 @@ function toFailure<T>(target: T, err: unknown): SequentialSendFailure<T> {
 export async function sendSequentially<T>(
   targets: readonly T[],
   send: (target: T) => Promise<void>,
-  { delayMs, signal, stopOn, sleep = wait, onProgress }: SequentialSendOptions,
+  { delayMs = 3000, minDelayMs, maxDelayMs, signal, stopOn, sleep = wait, onProgress }: SequentialSendOptions,
 ): Promise<SequentialSendResult<T>> {
   const failures: SequentialSendFailure<T>[] = [];
   let sent = 0;
   for (const [index, target] of targets.entries()) {
-    if (index > 0) await sleep(delayMs, signal);
+    if (index > 0) {
+      let delay = delayMs;
+      if (minDelayMs !== undefined && maxDelayMs !== undefined) {
+        const low = Math.min(minDelayMs, maxDelayMs);
+        const high = Math.max(minDelayMs, maxDelayMs);
+        delay = Math.floor(Math.random() * (high - low + 1)) + low;
+      }
+      await sleep(delay, signal);
+    }
     if (signal?.aborted) return { sent, failures, notAttempted: targets.slice(index), stoppedBy: 'abort' };
     onProgress?.(index + 1, targets.length);
     try {

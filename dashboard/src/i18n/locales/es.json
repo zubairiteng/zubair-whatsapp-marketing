@@ -70,7 +70,8 @@
     "infrastructure": "Infraestructura",
     "plugins": "Plugins",
     "logs": "Registros",
-    "templates": "Plantillas"
+    "templates": "Plantillas",
+    "campaigns": "Campañas"
   },
   "chats": {
     "media": {
@@ -775,7 +776,7 @@
     "bulkRecipients": "Destinatarios",
     "bulkRecipientsUpload": "Subir CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "Un número de teléfono o ID de chat por línea (máx. 100)",
+    "bulkRecipientsHint": "Un número de teléfono o ID de chat por línea (máx. 500)",
     "bulkRecipientsCount": "Destinatarios: {{count}}",
     "bulkDelay": "Retraso entre mensajes (ms)",
     "bulkDelayHint": "1000–60000 ms (predeterminado: 3000)",
@@ -816,7 +817,18 @@
       "progress": "Enviados {{sent}} de {{total}} · {{failed}} fallidos · {{pending}} pendientes",
       "cancel": "Cancelar lote",
       "cancelling": "Cancelando..."
-    }
+    },
+    "bulkMinDelay": "Retardo mínimo entre mensajes (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (predeterminado: 7000)",
+    "bulkMaxDelay": "Retardo máximo entre mensajes (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (predeterminado: 15000)",
+    "bulkDelayOrderError": "El retardo mínimo no puede ser mayor que el retardo máximo",
+    "bulkCampaign": "Campaña",
+    "bulkCampaignNone": "Ninguna (Manual / Directo)",
+    "bulkChunkName": "Nombre del bloque",
+    "bulkChunkNamePlaceholder": "ej. Lote 1",
+    "chunkRecorded": "Registrado en campaña",
+    "viewAnalytics": "Ver respuestas y análisis"
   },
   "templates": {
     "title": "Plantillas",

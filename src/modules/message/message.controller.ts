@@ -978,7 +978,11 @@ export class MessageController {
     @Body() dto: SendBulkMessageDto,
   ): Promise<BulkMessageResponseDto> {
     const batch = await this.bulkMessageService.createBatch(sessionId, dto);
-    const estimatedTime = new Date(Date.now() + batch.messages.length * (batch.options?.delayBetweenMessages || 3000));
+    const avgDelay =
+      batch.options?.minDelayBetweenMessages && batch.options?.maxDelayBetweenMessages
+        ? (batch.options.minDelayBetweenMessages + batch.options.maxDelayBetweenMessages) / 2
+        : (batch.options?.delayBetweenMessages || 3000);
+    const estimatedTime = new Date(Date.now() + batch.messages.length * avgDelay);
 
     return {
       batchId: batch.batchId,

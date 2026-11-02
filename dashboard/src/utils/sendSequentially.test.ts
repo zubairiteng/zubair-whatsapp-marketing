@@ -147,3 +147,23 @@ test('an empty target list sends nothing', async () => {
   assert.equal(called, false);
   assert.deepEqual(result, { sent: 0, failures: [], notAttempted: [] });
 });
+
+test('waits a randomized delay between minDelayMs and maxDelayMs when provided', async () => {
+  const slept: number[] = [];
+  await sendSequentially(
+    ['a', 'b', 'c', 'd'],
+    async () => {},
+    {
+      minDelayMs: 7000,
+      maxDelayMs: 15000,
+      sleep: async ms => {
+        slept.push(ms);
+      },
+    },
+  );
+  assert.equal(slept.length, 3);
+  for (const ms of slept) {
+    assert.ok(ms >= 7000, `Expected delay >= 7000, got ${ms}`);
+    assert.ok(ms <= 15000, `Expected delay <= 15000, got ${ms}`);
+  }
+});

@@ -18,6 +18,8 @@ const Sessions = lazy(() => import('./pages/Sessions').then(m => ({ default: m.S
 const Chats = lazy(() => import('./pages/Chats').then(m => ({ default: m.Chats })));
 const Webhooks = lazy(() => import('./pages/Webhooks').then(m => ({ default: m.Webhooks })));
 const Templates = lazy(() => import('./pages/Templates').then(m => ({ default: m.Templates })));
+const Campaigns = lazy(() => import('./pages/Campaigns').then(m => ({ default: m.Campaigns })));
+const ClientManagement = lazy(() => import('./pages/ClientManagement').then(m => ({ default: m.ClientManagement })));
 const Logs = lazy(() => import('./pages/Logs').then(m => ({ default: m.Logs })));
 const ApiKeys = lazy(() => import('./pages/ApiKeys').then(m => ({ default: m.ApiKeys })));
 const MessageTester = lazy(() => import('./pages/MessageTester').then(m => ({ default: m.MessageTester })));
@@ -124,6 +126,8 @@ function AppContent() {
               <Route path="chats" element={<Chats />} />
               <Route path="webhooks" element={<Webhooks />} />
               <Route path="templates" element={<Templates />} />
+              <Route path="campaigns" element={<Campaigns />} />
+              {role === 'admin' && <Route path="clients" element={<ClientManagement />} />}
               {role === 'admin' && !scoped && <Route path="api-keys" element={<ApiKeys />} />}
               {role === 'admin' && <Route path="logs" element={<Logs />} />}
               <Route path="message-tester" element={<MessageTester />} />

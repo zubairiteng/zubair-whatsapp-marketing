@@ -68,7 +68,8 @@
     "messageTester": "Penguji Pesan",
     "infrastructure": "Infrastruktur",
     "plugins": "Plugin",
-    "logs": "Log"
+    "logs": "Log",
+    "campaigns": "Kampanye"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "Penerima",
     "bulkRecipientsUpload": "Unggah CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "Satu nomor telepon atau ID obrolan per baris (maks 100)",
+    "bulkRecipientsHint": "Satu nomor telepon atau ID obrolan per baris (maks 500)",
     "bulkRecipientsCount": "Penerima: {{count}}",
     "bulkDelay": "Jeda Antar Pesan (ms)",
     "bulkDelayHint": "1000–60000 ms (bawaan 3000)",
@@ -860,7 +861,18 @@
       "progress": "Terkirim {{sent}} dari {{total}} · {{failed}} gagal · {{pending}} menunggu",
       "cancel": "Batalkan Batch",
       "cancelling": "Membatalkan..."
-    }
+    },
+    "bulkMinDelay": "Jeda Minimum Antar Pesan (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (bawaan 7000)",
+    "bulkMaxDelay": "Jeda Maksimum Antar Pesan (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (bawaan 15000)",
+    "bulkDelayOrderError": "Jeda minimum tidak boleh melebihi jeda maksimum",
+    "bulkCampaign": "Kampanye",
+    "bulkCampaignNone": "Tidak ada (Manual / Langsung)",
+    "bulkChunkName": "Nama Chunk",
+    "bulkChunkNamePlaceholder": "cth. Batch 1",
+    "chunkRecorded": "Tercatat dalam Kampanye",
+    "viewAnalytics": "Lihat Tanggapan & Analisis"
   },
   "infrastructure": {
     "title": "Infrastruktur",

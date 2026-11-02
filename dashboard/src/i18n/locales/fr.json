@@ -70,7 +70,8 @@
     "messageTester": "Testeur de messages",
     "infrastructure": "Infrastructure",
     "plugins": "Plugins",
-    "logs": "Journaux"
+    "logs": "Journaux",
+    "campaigns": "Campagnes"
   },
   "chats": {
     "media": {
@@ -825,7 +826,7 @@
     "bulkRecipients": "Destinataires",
     "bulkRecipientsUpload": "Téléverser CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "Un numéro de téléphone ou ID de chat par ligne (max 100)",
+    "bulkRecipientsHint": "Un numéro de téléphone ou ID de chat par ligne (max 500)",
     "bulkRecipientsCount": "Destinataires : {{count}}",
     "bulkDelay": "Délai entre les messages (ms)",
     "bulkDelayHint": "1000–60000 ms (par défaut : 3000)",
@@ -866,7 +867,18 @@
       "progress": "Envoyés {{sent}} sur {{total}} · {{failed}} échoués · {{pending}} en attente",
       "cancel": "Annuler le lot",
       "cancelling": "Annulation..."
-    }
+    },
+    "bulkMinDelay": "Délai minimum entre les messages (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (par défaut : 7000)",
+    "bulkMaxDelay": "Délai maximum entre les messages (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (par défaut : 15000)",
+    "bulkDelayOrderError": "Le délai minimum ne peut pas dépasser le délai maximum",
+    "bulkCampaign": "Campagne",
+    "bulkCampaignNone": "Aucune (Manuel / Direct)",
+    "bulkChunkName": "Nom du lot",
+    "bulkChunkNamePlaceholder": "ex. Lot 1",
+    "chunkRecorded": "Enregistré dans la campagne",
+    "viewAnalytics": "Voir réponses et analyses"
   },
   "infrastructure": {
     "title": "Infrastructure",

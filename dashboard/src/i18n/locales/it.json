@@ -70,7 +70,8 @@
     "messageTester": "Messaggio di prova",
     "infrastructure": "Infrastruttura",
     "plugins": "Plugin",
-    "logs": "Log"
+    "logs": "Log",
+    "campaigns": "Campagne"
   },
   "chats": {
     "media": {
@@ -825,7 +826,7 @@
     "bulkRecipients": "Destinatari",
     "bulkRecipientsUpload": "Carica CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "Un numero di telefono o ID chat per riga (max 100)",
+    "bulkRecipientsHint": "Un numero di telefono o ID chat per riga (max 500)",
     "bulkRecipientsCount": "Destinatari: {{count}}",
     "bulkDelay": "Ritardo tra i messaggi (ms)",
     "bulkDelayHint": "1000–60000 ms (predefinito: 3000)",
@@ -866,7 +867,18 @@
       "progress": "Inviati {{sent}} di {{total}} · {{failed}} non riusciti · {{pending}} in attesa",
       "cancel": "Annulla batch",
       "cancelling": "Annullamento..."
-    }
+    },
+    "bulkMinDelay": "Ritardo minimo tra i messaggi (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (predefinito: 7000)",
+    "bulkMaxDelay": "Ritardo massimo tra i messaggi (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (predefinito: 15000)",
+    "bulkDelayOrderError": "Il ritardo minimo non può superare il ritardo massimo",
+    "bulkCampaign": "Campagna",
+    "bulkCampaignNone": "Nessuna (Manuale / Diretto)",
+    "bulkChunkName": "Nome del blocco",
+    "bulkChunkNamePlaceholder": "es. Lotto 1",
+    "chunkRecorded": "Registrato nella campagna",
+    "viewAnalytics": "Visualizza risposte e analisi"
   },
   "infrastructure": {
     "title": "Infrastruttura",

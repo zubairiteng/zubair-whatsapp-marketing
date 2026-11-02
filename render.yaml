@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: zubair-whatsapp-suite
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: standard
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 2785
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_TYPE
+        value: sqlite
+      - key: SERVE_DASHBOARD
+        value: "true"
+      - key: ALLOW_DEV_API_KEY
+        value: "false"

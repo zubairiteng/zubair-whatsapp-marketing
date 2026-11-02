@@ -68,7 +68,8 @@
     "messageTester": "消息测试器",
     "infrastructure": "基础设施",
     "plugins": "插件",
-    "logs": "日志"
+    "logs": "日志",
+    "campaigns": "营销活动"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "接收者",
     "bulkRecipientsUpload": "上传 CSV/TXT",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "每行一个电话号码或聊天 ID（最多 100 个）",
+    "bulkRecipientsHint": "每行一个电话号码或聊天 ID（最多 500 个）",
     "bulkRecipientsCount": "接收者：{{count}}",
     "bulkDelay": "消息间隔延迟（毫秒）",
     "bulkDelayHint": "1000–60000 毫秒（默认 3000）",
@@ -860,7 +861,18 @@
       "progress": "已发送 {{sent}}/{{total}} · {{failed}} 失败 · {{pending}} 待发送",
       "cancel": "取消批次",
       "cancelling": "取消中..."
-    }
+    },
+    "bulkMinDelay": "消息之间最小延迟(毫秒)",
+    "bulkMinDelayHint": "1000–60000 毫秒(默认 7000)",
+    "bulkMaxDelay": "消息之间最大延迟(毫秒)",
+    "bulkMaxDelayHint": "1000–60000 毫秒(默认 15000)",
+    "bulkDelayOrderError": "最小延迟不能大于最大延迟",
+    "bulkCampaign": "活动",
+    "bulkCampaignNone": "无（手动 / 直接）",
+    "bulkChunkName": "批次名称",
+    "bulkChunkNamePlaceholder": "例如：批次 1",
+    "chunkRecorded": "已记录在营销活动中",
+    "viewAnalytics": "查看回复与统计"
   },
   "infrastructure": {
     "title": "基础设施",

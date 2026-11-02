@@ -518,6 +518,8 @@ export interface SendBulkPayload {
   messages: BulkMessageItem[];
   options?: {
     delayBetweenMessages?: number;
+    minDelayBetweenMessages?: number;
+    maxDelayBetweenMessages?: number;
     randomizeDelay?: boolean;
     stopOnError?: boolean;
   };
@@ -1509,4 +1511,228 @@ export interface MessageStats {
 export const statsApi = {
   getOverview: () => request<OverviewStats>('/stats/overview'),
   getMessages: (period: StatsPeriod) => request<MessageStats>(`/stats/messages?period=${period}`),
+};
+
+// =============================================================================
+// Campaigns API
+// =============================================================================
+
+export interface CampaignItem {
+  id: string;
+  name: string;
+  description: string | null;
+  recipientsCount: number;
+  chunksCount: number;
+  totalMessagesSent: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignDetail extends CampaignItem {
+  recipients: string[];
+  chunks: CampaignChunkItem[];
+}
+
+export interface CampaignChunkItem {
+  id: string;
+  campaignId: string;
+  chunkName: string;
+  sessionId: string;
+  batchId: string | null;
+  messageType: string;
+  messageContent: string | null;
+  recipients: Array<{
+    chatId: string;
+    status: 'sent' | 'failed';
+    messageId?: string;
+    error?: string;
+    sentAt?: string;
+  }>;
+  sentAt: string;
+  createdAt: string;
+}
+
+export interface ChunkAnalytics {
+  chunkId: string;
+  chunkName: string;
+  sentAt: string;
+  sessionId: string;
+  messageType: string;
+  messageContent?: string | null;
+  totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  totalResponded: number;
+  totalIgnored: number;
+  responseRatePercent: number;
+  summary: {
+    acknowledged: number;
+    questions: number;
+    reactions: number;
+    otherReplies: number;
+    ignored: number;
+  };
+  recipients: Array<{
+    chatId: string;
+    status: 'sent' | 'failed';
+    messageId?: string;
+    responseCategory: 'acknowledged' | 'question' | 'reaction' | 'replied' | 'ignored';
+    lastResponseText?: string;
+    lastResponseTime?: string;
+  }>;
+}
+
+export interface CampaignAnalytics {
+  campaignId: string;
+  campaignName: string;
+  totalChunks: number;
+  totalRecipientsSaved: number;
+  totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  totalResponded: number;
+  totalIgnored: number;
+  overallResponseRate: number;
+  summary: {
+    acknowledged: number;
+    questions: number;
+    reactions: number;
+    otherReplies: number;
+    ignored: number;
+  };
+  chunks: Array<{
+    chunkId: string;
+    chunkName: string;
+    sentAt: string;
+    totalSent: number;
+    totalResponded: number;
+    responseRatePercent: number;
+    summary: {
+      acknowledged: number;
+      questions: number;
+      reactions: number;
+      otherReplies: number;
+      ignored: number;
+    };
+  }>;
+}
+
+export interface CreateCampaignInput {
+  name: string;
+  description?: string;
+  recipients?: string[];
+  tags?: string[];
+}
+
+export interface CreateChunkInput {
+  chunkName?: string;
+  sessionId: string;
+  batchId?: string;
+  messageType?: string;
+  messageContent?: string;
+  recipients: Array<{
+    chatId: string;
+    status?: 'sent' | 'failed';
+    messageId?: string;
+    error?: string;
+  }>;
+}
+
+export const campaignApi = {
+  list: () => request<CampaignItem[]>('/campaigns'),
+  get: (id: string) => request<CampaignDetail>(`/campaigns/${id}`),
+  create: (body: CreateCampaignInput) =>
+    request<CampaignDetail>('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  update: (id: string, body: Partial<CreateCampaignInput>) =>
+    request<CampaignDetail>(`/campaigns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request<void>(`/campaigns/${id}`, { method: 'DELETE' }),
+  createChunk: (campaignId: string, body: CreateChunkInput) =>
+    request<CampaignChunkItem>(`/campaigns/${campaignId}/chunks`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getChunks: (campaignId: string) => request<CampaignChunkItem[]>(`/campaigns/${campaignId}/chunks`),
+  getChunkAnalytics: (campaignId: string, chunkId: string) =>
+    request<ChunkAnalytics>(`/campaigns/${campaignId}/chunks/${chunkId}/analytics`),
+  getCampaignAnalytics: (campaignId: string) =>
+    request<CampaignAnalytics>(`/campaigns/${campaignId}/analytics`),
+  getAiConfig: () =>
+    request<{ configured: boolean; model: string; hasCustomKey: boolean }>('/campaigns/ai-config'),
+  updateAiConfig: (body: { geminiApiKey?: string; geminiModel?: string }) =>
+    request<{ success: boolean; configured: boolean; model: string }>('/campaigns/ai-config', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+};
+
+
+
+export interface ClientItem {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'client';
+  status: 'active' | 'disabled';
+  sessionId: string | null;
+  expiresAt: string | null;
+  daysRemaining: number;
+  isExpired?: boolean;
+  createdAt: string;
+}
+
+export interface CreateClientInput {
+  name: string;
+  email: string;
+  password: string;
+  validityDays?: number;
+}
+
+export interface UpdateClientInput {
+  name?: string;
+  status?: 'active' | 'disabled';
+  addDays?: number;
+  expiresAt?: string;
+  password?: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'client';
+    status: 'active' | 'disabled';
+    sessionId: string | null;
+    expiresAt: string | null;
+    daysRemaining?: number;
+  };
+}
+
+export const clientApi = {
+  login: (email: string, password: string) =>
+    request<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  getMe: () => request<LoginResponse['user']>('/auth/me'),
+  list: () => request<ClientItem[]>('/admin/clients'),
+  create: (body: CreateClientInput) =>
+    request<ClientItem>('/admin/clients', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  update: (id: string, body: UpdateClientInput) =>
+    request<ClientItem>(`/admin/clients/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  delete: (id: string) => request<void>(`/admin/clients/${id}`, { method: 'DELETE' }),
 };

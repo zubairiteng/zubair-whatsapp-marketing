@@ -68,7 +68,8 @@
     "messageTester": "메시지 테스터",
     "infrastructure": "인프라",
     "plugins": "플러그인",
-    "logs": "로그"
+    "logs": "로그",
+    "campaigns": "캠페인"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "수신자",
     "bulkRecipientsUpload": "CSV/TXT 업로드",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "한 줄에 하나의 전화번호 또는 채팅 ID (최대 100개)",
+    "bulkRecipientsHint": "한 줄에 하나의 전화번호 또는 채팅 ID (최대 500개)",
     "bulkRecipientsCount": "수신자: {{count}}",
     "bulkDelay": "메시지 간 지연 (ms)",
     "bulkDelayHint": "1000–60000ms (기본값 3000)",
@@ -860,7 +861,18 @@
       "progress": "{{total}}개 중 {{sent}}개 전송됨 · {{failed}}개 실패 · {{pending}}개 대기 중",
       "cancel": "배치 취소",
       "cancelling": "취소 중..."
-    }
+    },
+    "bulkMinDelay": "메시지 간 최소 지연 (ms)",
+    "bulkMinDelayHint": "1000–60000ms (기본값 7000)",
+    "bulkMaxDelay": "메시지 간 최대 지연 (ms)",
+    "bulkMaxDelayHint": "1000–60000ms (기본값 15000)",
+    "bulkDelayOrderError": "최소 지연 시간은 최대 지연 시간을 초과할 수 없습니다",
+    "bulkCampaign": "캠페인",
+    "bulkCampaignNone": "없음 (수동 / 직접)",
+    "bulkChunkName": "청크 이름",
+    "bulkChunkNamePlaceholder": "예: 배치 1",
+    "chunkRecorded": "캠페인에 기록됨",
+    "viewAnalytics": "응답 및 분석 보기"
   },
   "infrastructure": {
     "title": "인프라",

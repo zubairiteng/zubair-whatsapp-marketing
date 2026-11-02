@@ -68,7 +68,8 @@
     "messageTester": "మెసేజ్ టెస్టర్",
     "infrastructure": "ఇన్‌ఫ్రాస్ట్రక్చర్",
     "plugins": "ప్లగిన్స్",
-    "logs": "లాగ్స్"
+    "logs": "లాగ్స్",
+    "campaigns": "ప్రచారాలు"
   },
   "chats": {
     "media": {
@@ -819,7 +820,7 @@
     "bulkRecipients": "గ్రహీతలు",
     "bulkRecipientsUpload": "CSV/TXT అప్‌లోడ్ చేయండి",
     "bulkRecipientsPlaceholder": "+62812345678",
-    "bulkRecipientsHint": "ఒక్కో లైన్‌లో ఒక ఫోన్ నంబర్ లేదా చాట్ ID (గరిష్టంగా 100)",
+    "bulkRecipientsHint": "ఒక్కో లైన్‌లో ఒక ఫోన్ నంబర్ లేదా చాట్ ID (గరిష్టంగా 500)",
     "bulkRecipientsCount": "గ్రహీతలు: {{count}}",
     "bulkDelay": "సందేశాల మధ్య విరామం (ms)",
     "bulkDelayHint": "1000–60000 ms (డిఫాల్ట్ 3000)",
@@ -860,7 +861,18 @@
       "progress": "{{total}}లో {{sent}} పంపబడ్డాయి · {{failed}} విఫలమయ్యాయి · {{pending}} పెండింగ్‌లో ఉన్నాయి",
       "cancel": "బ్యాచ్‌ను రద్దు చేయండి",
       "cancelling": "రద్దు చేస్తోంది..."
-    }
+    },
+    "bulkMinDelay": "సందేశాల మధ్య కనీస ఆలస్యం (ms)",
+    "bulkMinDelayHint": "1000–60000 ms (డిఫాల్ట్ 7000)",
+    "bulkMaxDelay": "సందేశాల మధ్య గరిష్ట ఆలస్యం (ms)",
+    "bulkMaxDelayHint": "1000–60000 ms (డిఫాల్ట్ 15000)",
+    "bulkDelayOrderError": "కనీస ఆలస్యం గరిష్ట ఆలస్యం కంటే ఎక్కువగా ఉండకూడదు",
+    "bulkCampaign": "ప్రచారం",
+    "bulkCampaignNone": "ఏదీ లేదు (మాన్యువల్ / ప్రత్యక్ష)",
+    "bulkChunkName": "భాగం పేరు",
+    "bulkChunkNamePlaceholder": "ఉదా. బ్యాచ్ 1",
+    "chunkRecorded": "ప్రచారంలో రికార్డ్ చేయబడింది",
+    "viewAnalytics": "ప్రతిస్పందనలు & విశ్లేషణలను వీక్షించండి"
   },
   "infrastructure": {
     "title": "ఇన్‌ఫ్రాస్ట్రక్చర్",

@@ -9,6 +9,8 @@ import {
   pluginsApi,
   pluginInstancesApi,
   statsApi,
+  campaignApi,
+  type CreateCampaignInput,
   type CreateWebhookRequest,
   type UpdateWebhookRequest,
   type MessageTemplate,
@@ -380,3 +382,55 @@ export function useStatsMessagesQuery(period: StatsPeriod) {
     retry: false,
   });
 }
+
+// ── Campaign Queries & Mutations ──────────────────────────────────────
+
+export function useCampaignsQuery() {
+  return useQuery({
+    queryKey: ['campaigns'],
+    queryFn: campaignApi.list,
+    staleTime: 10_000,
+  });
+}
+
+export function useCampaignQuery(id: string) {
+  return useQuery({
+    queryKey: ['campaigns', id],
+    queryFn: () => campaignApi.get(id),
+    enabled: !!id,
+    staleTime: 10_000,
+  });
+}
+
+export function useCreateCampaignMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateCampaignInput) => campaignApi.create(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}
+
+export function useUpdateCampaignMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Partial<CreateCampaignInput> }) =>
+      campaignApi.update(id, body),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+      qc.invalidateQueries({ queryKey: ['campaigns', id] });
+    },
+  });
+}
+
+export function useDeleteCampaignMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => campaignApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}
+

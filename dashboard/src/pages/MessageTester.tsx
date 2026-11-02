@@ -1,9 +1,11 @@
 import { Fragment, useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Send, CheckCircle, XCircle, Loader2, Upload, X, Plus, AlertCircle } from 'lucide-react';
 import {
   messageApi,
   contactApi,
+  campaignApi,
   type SendMediaPayload,
   type MessageResponse,
   type BatchStatus,
@@ -11,7 +13,7 @@ import {
 } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useRole } from '../hooks/useRole';
-import { useSessionsQuery, useSessionGroupsQuery } from '../hooks/queries';
+import { useSessionsQuery, useSessionGroupsQuery, useCampaignsQuery } from '../hooks/queries';
 import { parseBulkRecipients, BULK_MAX_RECIPIENTS, BULK_RECIPIENTS_FILE_MAX_BYTES } from '../utils/bulkRecipients';
 import {
   BULK_CAPTION_MAX_LENGTH,
@@ -174,7 +176,8 @@ export function MessageTester() {
   const [forwardTo, setForwardTo] = useState('');
   const [forwardMessageId, setForwardMessageId] = useState('');
   const [bulkRecipients, setBulkRecipients] = useState('');
-  const [bulkDelay, setBulkDelay] = useState('');
+  const [bulkMinDelay, setBulkMinDelay] = useState('7000');
+  const [bulkMaxDelay, setBulkMaxDelay] = useState('15000');
   const [bulkMediaKind, setBulkMediaKind] = useState<BulkMediaKind>('document');
   const [bulkMediaKindChosen, setBulkMediaKindChosen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -187,6 +190,53 @@ export function MessageTester() {
   // The session a running batch belongs to: the user may switch the selector mid-batch, and
   // poll/cancel must keep addressing the session the batch was created on.
   const batchSessionRef = useRef('');
+
+  const [searchParams] = useSearchParams();
+  const { data: campaigns = [] } = useCampaignsQuery();
+  const [selectedCampaignId, setSelectedCampaignId] = useState('');
+  const [chunkName, setChunkName] = useState('');
+  const [recordedChunkInfo, setRecordedChunkInfo] = useState<{ campaignId: string; chunkName: string; chunkId?: string } | null>(null);
+
+  useEffect(() => {
+    const campIdFromSession = window.sessionStorage.getItem('openwa_active_campaign_id');
+    const campIdFromUrl = searchParams.get('campaignId');
+    const targetCampId = campIdFromSession || campIdFromUrl;
+
+    if (targetCampId) {
+      setSelectedCampaignId(targetCampId);
+      setMessageType('bulk');
+      void campaignApi.get(targetCampId).then(camp => {
+        if (camp?.recipients?.length) {
+          setBulkRecipients(camp.recipients.join('\n'));
+        }
+        const defaultName = `Run ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        setChunkName(defaultName);
+      }).catch(() => {});
+      if (campIdFromSession) {
+        window.sessionStorage.removeItem('openwa_active_campaign_id');
+        window.sessionStorage.removeItem('openwa_active_campaign_name');
+      }
+    }
+  }, [searchParams]);
+
+  const handleCampaignSelect = async (e: ChangeEvent<HTMLSelectElement>) => {
+    const campId = e.target.value;
+    setSelectedCampaignId(campId);
+    if (!campId) return;
+
+    try {
+      const camp = await campaignApi.get(campId);
+      if (camp?.recipients?.length) {
+        setBulkRecipients(camp.recipients.join('\n'));
+      }
+      if (!chunkName) {
+        const defaultName = `Run ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        setChunkName(defaultName);
+      }
+    } catch {
+      // non-fatal
+    }
+  };
 
   const {
     data: groups = [],
@@ -335,7 +385,16 @@ export function MessageTester() {
   const pollOptionsFilled = pollOptions.map(o => o.trim()).filter(o => o.length > 0);
   const lat = parseFloat(latitude);
   const lng = parseFloat(longitude);
-  const delayMs = bulkDelay.trim() === '' ? undefined : parseInt(bulkDelay, 10);
+  const minDelayMs = bulkMinDelay.trim() === '' ? 7000 : parseInt(bulkMinDelay, 10);
+  const maxDelayMs = bulkMaxDelay.trim() === '' ? 15000 : parseInt(bulkMaxDelay, 10);
+  const isDelayValid =
+    !Number.isNaN(minDelayMs) &&
+    !Number.isNaN(maxDelayMs) &&
+    minDelayMs >= 1000 &&
+    minDelayMs <= 60000 &&
+    maxDelayMs >= 1000 &&
+    maxDelayMs <= 60000 &&
+    minDelayMs <= maxDelayMs;
   const bulkAttachment = messageType === 'bulk' ? toBulkAttachment(bulkMediaKind, mediaFile, mediaUrl) : null;
   const bulkMediaTooLarge =
     messageType === 'bulk' &&
@@ -401,7 +460,7 @@ export function MessageTester() {
       !bulkTextTooLong &&
       bulkRecipientList.length > 0 &&
       bulkRecipientList.length <= BULK_MAX_RECIPIENTS &&
-      (delayMs === undefined || (!Number.isNaN(delayMs) && delayMs >= 1000 && delayMs <= 60000));
+      isDelayValid;
   }
 
   // A new send replaces the batch on screen, so it waits for an in-flight cancel: the cancel's answer
@@ -439,6 +498,8 @@ export function MessageTester() {
         },
         {
           delayMs: GROUP_SEND_DELAY_MS,
+          minDelayMs,
+          maxDelayMs,
           signal: controller.signal,
           stopOn: isGatewayRefusal,
           onProgress: (current, total) => setGroupSendProgress({ current, total }),
@@ -504,7 +565,12 @@ export function MessageTester() {
       if (messageType === 'bulk') {
         const batch = await messageApi.sendBulk(session, {
           messages: buildBulkMessages(bulkRecipientList, content, bulkAttachment),
-          ...(delayMs !== undefined ? { options: { delayBetweenMessages: delayMs } } : {}),
+          options: {
+            delayBetweenMessages: minDelayMs,
+            minDelayBetweenMessages: minDelayMs,
+            maxDelayBetweenMessages: maxDelayMs,
+            randomizeDelay: true,
+          },
         });
         batchSessionRef.current = session;
         setResponse({ success: true, timestamp: new Date().toISOString(), batchId: batch.batchId });
@@ -515,6 +581,28 @@ export function MessageTester() {
           results: [],
         });
         startBatchPolling(session, batch.batchId);
+
+        if (selectedCampaignId) {
+          const effectiveChunkName =
+            chunkName.trim() ||
+            `Run ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          try {
+            const createdChunk = await campaignApi.createChunk(selectedCampaignId, {
+              chunkName: effectiveChunkName,
+              sessionId: session,
+              batchId: batch.batchId,
+              messageType: bulkAttachment ? bulkAttachment.kind : 'text',
+              messageContent: content || (bulkAttachment ? `[${bulkAttachment.kind}]` : ''),
+              recipients: bulkRecipientList.map(phone => ({ chatId: phone, status: 'sent' as const })),
+            });
+            setRecordedChunkInfo({ campaignId: selectedCampaignId, chunkName: effectiveChunkName, chunkId: createdChunk.id });
+          } catch {
+            // non-fatal
+          }
+        } else {
+          setRecordedChunkInfo(null);
+        }
+
         return;
       }
 
@@ -1059,6 +1147,36 @@ export function MessageTester() {
 
             {messageType === 'bulk' && (
               <>
+                <div className="form-row" style={{ marginBottom: '1rem' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label htmlFor="mt-bulk-campaign">{t('messageTester.bulkCampaign')}</label>
+                    <select
+                      id="mt-bulk-campaign"
+                      value={selectedCampaignId}
+                      onChange={handleCampaignSelect}
+                    >
+                      <option value="">{t('messageTester.bulkCampaignNone')}</option>
+                      {campaigns.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.recipientsCount})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedCampaignId && (
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label htmlFor="mt-bulk-chunk-name">{t('messageTester.bulkChunkName')}</label>
+                      <input
+                        id="mt-bulk-chunk-name"
+                        type="text"
+                        value={chunkName}
+                        onChange={e => setChunkName(e.target.value)}
+                        placeholder={t('messageTester.bulkChunkNamePlaceholder')}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="form-group">
                   <div
                     style={{
@@ -1144,22 +1262,45 @@ export function MessageTester() {
                     </div>
                   </div>
                 )}
-                <div className="form-group">
-                  <label htmlFor="mt-18">
-                    {t('messageTester.bulkDelay')} ({t('common.optional')})
-                  </label>
-                  <input
-                    id="mt-18"
-                    type="number"
-                    min={1000}
-                    max={60000}
-                    step={500}
-                    value={bulkDelay}
-                    onChange={e => setBulkDelay(e.target.value)}
-                    placeholder="3000"
-                  />
-                  <span className="hint">{t('messageTester.bulkDelayHint')}</span>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="mt-min-delay">
+                      {t('messageTester.bulkMinDelay')} ({t('common.optional')})
+                    </label>
+                    <input
+                      id="mt-min-delay"
+                      type="number"
+                      min={1000}
+                      max={60000}
+                      step={500}
+                      value={bulkMinDelay}
+                      onChange={e => setBulkMinDelay(e.target.value)}
+                      placeholder="7000"
+                    />
+                    <span className="hint">{t('messageTester.bulkMinDelayHint')}</span>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="mt-max-delay">
+                      {t('messageTester.bulkMaxDelay')} ({t('common.optional')})
+                    </label>
+                    <input
+                      id="mt-max-delay"
+                      type="number"
+                      min={1000}
+                      max={60000}
+                      step={500}
+                      value={bulkMaxDelay}
+                      onChange={e => setBulkMaxDelay(e.target.value)}
+                      placeholder="15000"
+                    />
+                    <span className="hint">{t('messageTester.bulkMaxDelayHint')}</span>
+                  </div>
                 </div>
+                {minDelayMs > maxDelayMs && (
+                  <span className="hint error" role="status" style={{ marginTop: '-0.75rem', marginBottom: '1rem', display: 'block' }}>
+                    {t('messageTester.bulkDelayOrderError')}
+                  </span>
+                )}
               </>
             )}
           </fieldset>
@@ -1299,6 +1440,43 @@ export function MessageTester() {
                     })}
                   </div>
                   {batchError && <div className="batch-error">{batchError}</div>}
+                </div>
+              )}
+
+              {recordedChunkInfo && (
+                <div
+                  className="campaign-chunk-notice"
+                  style={{
+                    padding: '0.85rem 1rem',
+                    margin: '1rem 0',
+                    backgroundColor: 'rgba(37, 211, 102, 0.1)',
+                    border: '1px solid rgba(37, 211, 102, 0.3)',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.9rem' }}>
+                      ✓ {t('messageTester.chunkRecorded')}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {recordedChunkInfo.chunkName}
+                    </div>
+                  </div>
+                  <Link
+                    to="/campaigns"
+                    style={{
+                      fontSize: '0.85rem',
+                      color: 'var(--primary)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {t('messageTester.viewAnalytics')} →
+                  </Link>
                 </div>
               )}
 
