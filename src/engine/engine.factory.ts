@@ -40,7 +40,7 @@ export class EngineFactory implements OnModuleInit {
     private readonly lidMappingStore: LidMappingStoreService,
     private readonly chatStateStore: ChatStateStoreService,
   ) {
-    this.engineType = this.configService.get<string>('engine.type') ?? 'whatsapp-web.js';
+    this.engineType = this.configService.get<string>('engine.type') ?? 'baileys';
   }
 
   async onModuleInit(): Promise<void> {

@@ -219,7 +219,7 @@ export default () => ({
 
   // WhatsApp engine configuration
   engine: {
-    type: process.env.ENGINE_TYPE || 'whatsapp-web.js',
+    type: process.env.ENGINE_TYPE || 'baileys',
     puppeteer: {
       headless: process.env.PUPPETEER_HEADLESS !== 'false',
       // Accept either delimiter: .env/compose use commas, the dashboard Infrastructure form
