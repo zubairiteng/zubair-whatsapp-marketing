@@ -50,6 +50,18 @@ const QUESTION_REGEX = /[?؟]|\b(kya|kab|kaise|kesay|kese|kidhar|kitna|kitne|kit
 const ACK_REGEX = /\b(ok|okay|okey|okk|oky|k|kk|done|thanks|thank you|thx|ty|tnx|received|noted|theek|thik|thek|theek hai|thek hy|thik hy|acha|achha|achi|accha|ji|g|jee|yes|yeah|yep|yup|sure|got it|confirm|confirmed|shukriya|mehrbani|alhamdulillah|hanji|haan|han|ha|sahi|sahi hai|sahi hy|bilkul|fine|welcome|all good|no problem|np|right|rite|correct|alright|all right|exact|exactly|perfect|good|great|agreed)\b|[👍👌✅💯]|ٹھیک|صحیح|اوکے|شکریہ|ہاں|جی|بہتر|معلوم|ملا|وصول|درست/i;
 const EMOJI_REGEX = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic})+$/u;
 
+function parseJsonArray<T>(val: any): T[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+}
+
+
 @Injectable()
 export class CampaignService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CampaignService.name);
@@ -86,9 +98,10 @@ export class CampaignService implements OnApplicationBootstrap {
           "updated_at" ${timestampCol}
         )
       `);
-      try {
-        await this.campaignRepo.query(`ALTER TABLE "campaigns" ADD COLUMN "sessionId" varchar(150)`);
-      } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaigns" ADD COLUMN "sessionId" varchar(150)`); } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaigns" ADD COLUMN "description" text`); } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaigns" ADD COLUMN "tags" text`); } catch {}
+
       await this.campaignRepo.query(`
         CREATE TABLE IF NOT EXISTS "campaign_chunks" (
           "id" varchar PRIMARY KEY NOT NULL,
@@ -99,10 +112,15 @@ export class CampaignService implements OnApplicationBootstrap {
           "messageType" varchar NOT NULL DEFAULT 'text',
           "messageContent" text,
           "recipients" text NOT NULL DEFAULT '[]',
-          "created_at" ${timestampCol},
-          "updated_at" ${timestampCol}
+          "sent_at" ${timestampCol},
+          "created_at" ${timestampCol}
         )
       `);
+      try { await this.campaignRepo.query(`ALTER TABLE "campaign_chunks" ADD COLUMN "sent_at" ${timestampCol}`); } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaign_chunks" ADD COLUMN "sessionId" varchar(150)`); } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaign_chunks" ADD COLUMN "batchId" varchar(150)`); } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaign_chunks" ADD COLUMN "messageType" varchar(50) DEFAULT 'text'`); } catch {}
+      try { await this.campaignRepo.query(`ALTER TABLE "campaign_chunks" ADD COLUMN "messageContent" text`); } catch {}
     } catch (err) {
       this.logger.warn(`Notice while ensuring campaign tables: ${String(err)}`);
     }
@@ -118,54 +136,96 @@ export class CampaignService implements OnApplicationBootstrap {
       tags: dto.tags || [],
       sessionId: sessionId || null,
     });
-    return this.campaignRepo.save(campaign);
+    const saved = await this.campaignRepo.save(campaign);
+    saved.recipients = parseJsonArray<string>(saved.recipients);
+    saved.tags = parseJsonArray<string>(saved.tags);
+    return saved;
   }
 
   async findAll(allowedSessions?: string[] | null): Promise<any[]> {
-    const query = this.campaignRepo.createQueryBuilder('campaign')
-      .leftJoinAndSelect('campaign.chunks', 'chunks')
-      .orderBy('campaign.updatedAt', 'DESC');
+    await this.ensureCampaignTablesExist();
+    try {
+      const query = this.campaignRepo.createQueryBuilder('campaign')
+        .leftJoinAndSelect('campaign.chunks', 'chunks')
+        .orderBy('campaign.updatedAt', 'DESC');
 
-    if (allowedSessions && allowedSessions.length > 0) {
-      query.andWhere('(campaign.sessionId IN (:...allowedSessions) OR campaign.sessionId IS NULL)', {
-        allowedSessions,
-      });
-    }
-
-    const campaigns = await query.getMany();
-
-    return campaigns.map(c => {
-      const chunksCount = c.chunks?.length || 0;
-      let totalMessagesSent = 0;
-      if (c.chunks) {
-        for (const chunk of c.chunks) {
-          totalMessagesSent += chunk.recipients?.filter(r => r.status === 'sent').length || 0;
-        }
+      if (allowedSessions && allowedSessions.length > 0) {
+        query.andWhere('(campaign.sessionId IN (:...allowedSessions) OR campaign.sessionId IS NULL)', {
+          allowedSessions,
+        });
       }
 
-      return {
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        recipientsCount: c.recipients?.length || 0,
-        chunksCount,
-        roundsCount: chunksCount,
-        totalMessagesSent,
-        tags: c.tags || [],
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-      };
-    });
+      const campaigns = await query.getMany();
+
+      return campaigns.map(c => {
+        const chunks = c.chunks || [];
+        let totalMessagesSent = 0;
+        for (const chunk of chunks) {
+          const recList = parseJsonArray<ChunkRecipientItem>(chunk.recipients);
+          totalMessagesSent += recList.filter(r => r && r.status === 'sent').length;
+        }
+
+        const recipientsList = parseJsonArray<string>(c.recipients);
+
+        return {
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          recipientsCount: recipientsList.length,
+          chunksCount: chunks.length,
+          roundsCount: chunks.length,
+          totalMessagesSent,
+          tags: parseJsonArray<string>(c.tags),
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        };
+      });
+    } catch (err) {
+      this.logger.error(`Notice in findAll: ${String(err)}`);
+      try {
+        const simple = await this.campaignRepo.find({
+          order: { updatedAt: 'DESC' },
+        });
+        return simple.map(c => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          recipientsCount: parseJsonArray<string>(c.recipients).length,
+          chunksCount: 0,
+          roundsCount: 0,
+          totalMessagesSent: 0,
+          tags: parseJsonArray<string>(c.tags),
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        }));
+      } catch (err2) {
+        this.logger.error(`Critical error in findAll fallback: ${String(err2)}`);
+        return [];
+      }
+    }
   }
 
   async findOne(id: string): Promise<Campaign> {
-    const campaign = await this.campaignRepo.findOne({
-      where: { id },
-      relations: { chunks: true },
-      order: { chunks: { createdAt: 'DESC' } },
-    });
+    await this.ensureCampaignTablesExist();
+    let campaign: Campaign | null = null;
+    try {
+      campaign = await this.campaignRepo.findOne({
+        where: { id },
+        relations: { chunks: true },
+        order: { chunks: { createdAt: 'DESC' } },
+      });
+    } catch {
+      campaign = await this.campaignRepo.findOne({ where: { id } });
+    }
     if (!campaign) {
       throw new NotFoundException(`Campaign with ID '${id}' not found`);
+    }
+    campaign.recipients = parseJsonArray<string>(campaign.recipients);
+    campaign.tags = parseJsonArray<string>(campaign.tags);
+    if (campaign.chunks) {
+      for (const ch of campaign.chunks) {
+        ch.recipients = parseJsonArray<ChunkRecipientItem>(ch.recipients);
+      }
     }
     return campaign;
   }
@@ -237,7 +297,7 @@ export class CampaignService implements OnApplicationBootstrap {
       throw new NotFoundException(`Chunk '${chunkId}' not found for campaign '${campaignId}'`);
     }
 
-    const recipients = chunk.recipients || [];
+    const recipients = parseJsonArray<ChunkRecipientItem>(chunk.recipients);
     const totalRecipients = recipients.length;
     let deliveredCount = 0;
     let failedCount = 0;
