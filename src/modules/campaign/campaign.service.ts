@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import { Campaign } from './entities/campaign.entity';
 import { CampaignChunk, ChunkRecipientItem } from './entities/campaign-chunk.entity';
 import { CreateCampaignDto, UpdateCampaignDto, CreateChunkDto } from './dto/campaign.dto';
@@ -39,6 +40,8 @@ export interface ChunkAnalyticsResult {
     reactions: number;
     otherReplies: number;
     ignored: number;
+    totalAcknowledged?: number;
+    ackRatePercent?: number;
   };
   recipients: RecipientResponseDetail[];
 }
@@ -68,6 +71,9 @@ export class CampaignService implements OnApplicationBootstrap {
 
   private async ensureCampaignTablesExist(): Promise<void> {
     try {
+      const isPostgres = this.campaignRepo.manager.connection.options.type === 'postgres';
+      const timestampCol = isPostgres ? "timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP" : "datetime NOT NULL DEFAULT (datetime('now'))";
+
       await this.campaignRepo.query(`
         CREATE TABLE IF NOT EXISTS "campaigns" (
           "id" varchar PRIMARY KEY NOT NULL,
@@ -76,10 +82,13 @@ export class CampaignService implements OnApplicationBootstrap {
           "sessionId" varchar(150),
           "recipients" text NOT NULL DEFAULT '[]',
           "tags" text,
-          "created_at" datetime NOT NULL DEFAULT (datetime('now')),
-          "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
+          "created_at" ${timestampCol},
+          "updated_at" ${timestampCol}
         )
       `);
+      try {
+        await this.campaignRepo.query(`ALTER TABLE "campaigns" ADD COLUMN "sessionId" varchar(150)`);
+      } catch {}
       await this.campaignRepo.query(`
         CREATE TABLE IF NOT EXISTS "campaign_chunks" (
           "id" varchar PRIMARY KEY NOT NULL,
@@ -90,8 +99,8 @@ export class CampaignService implements OnApplicationBootstrap {
           "messageType" varchar NOT NULL DEFAULT 'text',
           "messageContent" text,
           "recipients" text NOT NULL DEFAULT '[]',
-          "created_at" datetime NOT NULL DEFAULT (datetime('now')),
-          "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
+          "created_at" ${timestampCol},
+          "updated_at" ${timestampCol}
         )
       `);
     } catch (err) {
@@ -100,7 +109,9 @@ export class CampaignService implements OnApplicationBootstrap {
   }
 
   async create(dto: CreateCampaignDto, sessionId?: string): Promise<Campaign> {
+    await this.ensureCampaignTablesExist();
     const campaign = this.campaignRepo.create({
+      id: randomUUID(),
       name: dto.name.trim(),
       description: dto.description?.trim() || null,
       recipients: Array.isArray(dto.recipients) ? Array.from(new Set(dto.recipients.map(r => r.trim()).filter(Boolean))) : [],
@@ -138,6 +149,7 @@ export class CampaignService implements OnApplicationBootstrap {
         description: c.description,
         recipientsCount: c.recipients?.length || 0,
         chunksCount,
+        roundsCount: chunksCount,
         totalMessagesSent,
         tags: c.tags || [],
         createdAt: c.createdAt,
@@ -176,13 +188,15 @@ export class CampaignService implements OnApplicationBootstrap {
   }
 
   async createChunk(campaignId: string, dto: CreateChunkDto): Promise<CampaignChunk> {
+    await this.ensureCampaignTablesExist();
     const campaign = await this.findOne(campaignId);
     const existingCount = campaign.chunks?.length || 0;
     const now = new Date();
 
-    const chunkName =
-      dto.chunkName?.trim() ||
-      `Chunk #${existingCount + 1} (${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})`;
+    const rawName = dto.chunkName?.trim();
+    const chunkName = rawName
+      ? rawName.replace(/^Chunk\b/i, 'Round')
+      : `Round ${existingCount + 1}`;
 
     const recipientItems: ChunkRecipientItem[] = dto.recipients.map(r => ({
       chatId: r.chatId,
@@ -193,6 +207,7 @@ export class CampaignService implements OnApplicationBootstrap {
     }));
 
     const chunk = this.chunkRepo.create({
+      id: randomUUID(),
       campaignId,
       chunkName,
       sessionId: dto.sessionId,
@@ -513,6 +528,8 @@ export class CampaignService implements OnApplicationBootstrap {
         reactions: reactionCount,
         otherReplies: otherReplyCount,
         ignored: ignoredCount,
+        totalAcknowledged: acknowledgedCount + reactionCount,
+        ackRatePercent: deliveredCount > 0 ? Math.round(((acknowledgedCount + reactionCount) / deliveredCount) * 100) : 0,
       },
       recipients: details,
     };
@@ -602,6 +619,50 @@ export class CampaignService implements OnApplicationBootstrap {
       model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
       hasCustomKey: false,
     };
+  }
+
+  async generateMessageWithGemini(prompt: string, tone = 'professional & engaging'): Promise<{ message: string }> {
+    const { apiKey, model } = this.getGeminiKeyAndModel();
+    if (!apiKey) {
+      throw new NotFoundException('Gemini API key is not configured. Please add your Gemini API Key in AI Settings.');
+    }
+
+    const systemPrompt = `You are an expert WhatsApp marketing copywriter for Pakistani businesses and institutions. 
+Write a concise, compelling, polite, and high-converting WhatsApp message based on the user instructions.
+Rules:
+1. Include friendly greeting, clear value proposition, and actionable call to action.
+2. Tone: ${tone}.
+3. Support natural English, Urdu, or Roman Urdu as requested in prompt.
+4. Use emojis tastefully. Keep it ready to send on WhatsApp without extra preamble or markdown tags like \`\`\`.`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const payload = {
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `${systemPrompt}\n\nUser instructions: ${prompt}` }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 600,
+      },
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => '');
+      throw new Error(`Gemini API error (${res.status}): ${err}`);
+    }
+
+    const data: any = await res.json();
+    const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    return { message: candidate };
   }
 
   updateAiConfig(data: { geminiApiKey?: string; geminiModel?: string }) {

@@ -129,7 +129,7 @@ export function Campaigns() {
     () => campaigns.reduce((acc, c) => acc + (c.recipientsCount || 0), 0),
     [campaigns],
   );
-  const totalChunksAll = useMemo(
+  const totalRoundsAll = useMemo(
     () => campaigns.reduce((acc, c) => acc + (c.chunksCount || 0), 0),
     [campaigns],
   );
@@ -306,7 +306,7 @@ export function Campaigns() {
     URL.revokeObjectURL(url);
   };
 
-  const sendInMessageTester = (campaign: CampaignItem | CampaignDetail) => {
+  const sendInMessages = (campaign: CampaignItem | CampaignDetail) => {
     window.sessionStorage.setItem('openwa_active_campaign_id', campaign.id);
     window.sessionStorage.setItem('openwa_active_campaign_name', campaign.name);
     navigate('/message-tester');
@@ -323,7 +323,7 @@ export function Campaigns() {
     <div className="campaigns-page">
       <PageHeader
         title={t('campaigns.title', 'Campaigns')}
-        subtitle={t('campaigns.subtitle', 'Create campaigns, upload contacts, and track responses chunk-by-chunk')}
+        subtitle={t('campaigns.subtitle', 'Create campaigns, upload contacts, and track responses round-by-round')}
       />
 
       {/* OVERVIEW STATS CARDS */}
@@ -352,8 +352,8 @@ export function Campaigns() {
               <Layers size={22} />
             </div>
             <div className="stat-content">
-              <div className="stat-label">{t('campaigns.chunksExecuted', 'Chunks Executed')}</div>
-              <div className="stat-value">{totalChunksAll}</div>
+              <div className="stat-label">{t('campaigns.roundsExecuted', 'Rounds Executed')}</div>
+              <div className="stat-value">{totalRoundsAll}</div>
             </div>
           </div>
           <div className="stat-card">
@@ -437,7 +437,7 @@ export function Campaigns() {
                       </span>
                       <span className="meta-chip">
                         <Layers size={14} />
-                        {c.chunksCount} {t('campaigns.chunks', 'chunks')}
+                        {(c.roundsCount ?? c.chunksCount ?? 0)} {t('campaigns.rounds', 'rounds')}
                       </span>
                       {c.totalMessagesSent > 0 && (
                         <span className="meta-chip">
@@ -449,9 +449,9 @@ export function Campaigns() {
                   </div>
 
                   <div className="campaign-actions">
-                    <button className="btn-primary" style={{ flex: 1 }} onClick={() => sendInMessageTester(c)}>
+                    <button className="btn-primary" style={{ flex: 1 }} onClick={() => sendInMessages(c)}>
                       <Send size={14} />
-                      {t('campaigns.sendNow', 'Send in Tester')}
+                      {t('campaigns.sendNow', 'Send Messages')}
                     </button>
                     <button className="btn-secondary" onClick={() => loadCampaignDetail(c.id)}>
                       {t('campaigns.details', 'Report & Numbers')}
@@ -508,10 +508,10 @@ export function Campaigns() {
               </button>
               <button
                 className="btn-primary"
-                onClick={() => selectedCampaignDetail && sendInMessageTester(selectedCampaignDetail)}
+                onClick={() => selectedCampaignDetail && sendInMessages(selectedCampaignDetail)}
               >
                 <Send size={16} />
-                {t('campaigns.sendInTester', 'Send in Message Tester')}
+                {t('campaigns.sendInTester', 'Launch Round in Send Messages')}
               </button>
               <button
                 className="btn-secondary"
@@ -529,7 +529,7 @@ export function Campaigns() {
               onClick={() => setActiveTab('chunks')}
             >
               <Layers size={18} />
-              {t('campaigns.chunksTab', 'Chunks & Response Reports')} (
+              {t('campaigns.roundsTab', 'Rounds & Response Reports')} (
               {selectedCampaignDetail?.chunks?.length || 0})
             </button>
             <button
@@ -553,19 +553,19 @@ export function Campaigns() {
               {(!selectedCampaignDetail?.chunks || selectedCampaignDetail.chunks.length === 0) ? (
                 <div className="empty-state">
                   <Layers size={48} color="var(--text-muted)" style={{ margin: '0 auto' }} />
-                  <h3>{t('campaigns.noChunks', 'No execution chunks yet')}</h3>
+                  <h3>{t('campaigns.noRounds', 'No execution rounds yet')}</h3>
                   <p>
                     {t(
                       'campaigns.noChunksDesc',
-                      'Send a batch from Message Tester using this campaign to create your first chunk and track responses.',
+                      'Send a batch from Send Messages using this campaign to create your first round and track responses.',
                     )}
                   </p>
                   <button
                     className="btn-primary"
-                    onClick={() => selectedCampaignDetail && sendInMessageTester(selectedCampaignDetail)}
+                    onClick={() => selectedCampaignDetail && sendInMessages(selectedCampaignDetail)}
                   >
                     <Send size={16} />
-                    {t('campaigns.launchFirstChunk', 'Send First Batch')}
+                    {t('campaigns.launchFirstRound', 'Launch Round 1 in Send Messages')}
                   </button>
                 </div>
               ) : (
@@ -603,7 +603,7 @@ export function Campaigns() {
                               <>
                                 <span className="badge ack">
                                   <CheckCircle size={12} />
-                                  {analytics.summary.acknowledged} {t('campaigns.ack', 'Ack')}
+                                  {(analytics.summary.totalAcknowledged ?? (analytics.summary.acknowledged + analytics.summary.reactions))} {t('campaigns.ack', 'Ack (Text+Reactions)')}
                                 </span>
                                 <span className="badge question">
                                   <HelpCircle size={12} />
@@ -660,7 +660,7 @@ export function Campaigns() {
                                       <>
                                         <div
                                           className="bar-segment ack"
-                                          style={{ width: `${(analytics.summary.acknowledged / analytics.totalDelivered) * 100}%` }}
+                                          style={{ width: `${(((analytics.summary.totalAcknowledged ?? (analytics.summary.acknowledged + analytics.summary.reactions))) / analytics.totalDelivered) * 100}%` }}
                                           title={`Acknowledged: ${analytics.summary.acknowledged}`}
                                         />
                                         <div
@@ -690,7 +690,7 @@ export function Campaigns() {
                                     <div className="legend-item">
                                       <div className="legend-dot ack" />
                                       <span>
-                                        {t('campaigns.acknowledged', 'Acknowledged')} ({analytics.summary.acknowledged})
+                                        {t('campaigns.acknowledged', 'Acknowledged (Text + Reactions)')} ({(analytics.summary.totalAcknowledged ?? (analytics.summary.acknowledged + analytics.summary.reactions))})
                                       </span>
                                     </div>
                                     <div className="legend-item">
@@ -1158,7 +1158,7 @@ export function Campaigns() {
           <p>
             {t(
               'campaigns.deleteConfirm',
-              'Are you sure you want to delete campaign "{{name}}"? This will delete its saved contacts and chunk history.',
+              'Are you sure you want to delete campaign "{{name}}"? This will delete its saved contacts and round history.',
               { name: campaignToDelete.name },
             )}
           </p>

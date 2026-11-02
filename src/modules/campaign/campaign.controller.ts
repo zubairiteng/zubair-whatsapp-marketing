@@ -42,6 +42,13 @@ export class CampaignController {
     return this.campaignService.updateAiConfig(body);
   }
 
+  @Post('ai-generate')
+  @RequireRole(ApiKeyRole.VIEWER)
+  @ApiOperation({ summary: 'Generate message text with Gemini AI' })
+  async generateAiMessage(@Body() body: { prompt: string; tone?: string }) {
+    return this.campaignService.generateMessageWithGemini(body.prompt, body.tone);
+  }
+
   @Get(':id')
   @RequireRole(ApiKeyRole.VIEWER)
   @ApiOperation({ summary: 'Get campaign details by ID' })

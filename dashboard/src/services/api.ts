@@ -458,7 +458,8 @@ export interface SendMediaPayload {
   mimetype?: string;
   filename?: string;
   caption?: string;
-  /** Quote an earlier message, making the media send a reply. Omit for an ordinary send. */
+  /** Send audio as WhatsApp voice note (PTT mic bubble) */
+  ptt?: boolean;  /** Quote an earlier message, making the media send a reply. Omit for an ordinary send. */
   quotedMessageId?: string;
 }
 
@@ -1523,6 +1524,7 @@ export interface CampaignItem {
   description: string | null;
   recipientsCount: number;
   chunksCount: number;
+  roundsCount?: number;
   totalMessagesSent: number;
   tags: string[];
   createdAt: string;
@@ -1572,7 +1574,8 @@ export interface ChunkAnalytics {
     reactions: number;
     otherReplies: number;
     ignored: number;
-  };
+    totalAcknowledged?: number;
+    ackRatePercent?: number;  };
   recipients: Array<{
     chatId: string;
     status: 'sent' | 'failed';
@@ -1665,10 +1668,20 @@ export const campaignApi = {
     request<CampaignAnalytics>(`/campaigns/${campaignId}/analytics`),
   getAiConfig: () =>
     request<{ configured: boolean; model: string; hasCustomKey: boolean }>('/campaigns/ai-config'),
+  saveAiConfig: (body: { geminiApiKey?: string; geminiModel?: string }) =>
+    request<{ success: boolean; configured: boolean; model: string }>('/campaigns/ai-config', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   updateAiConfig: (body: { geminiApiKey?: string; geminiModel?: string }) =>
     request<{ success: boolean; configured: boolean; model: string }>('/campaigns/ai-config', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+  generateAiMessage: (prompt: string, tone?: string) =>
+    request<{ message: string }>('/campaigns/ai-generate', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, tone }),
     }),
 };
 

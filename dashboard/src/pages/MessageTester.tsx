@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Send, CheckCircle, XCircle, Loader2, Upload, X, Plus, AlertCircle } from 'lucide-react';
+import { Send, CheckCircle, XCircle, Loader2, Upload, X, Plus, AlertCircle, Sparkles, Mic } from 'lucide-react';
 import {
   messageApi,
   contactApi,
@@ -13,6 +13,8 @@ import {
 } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useRole } from '../hooks/useRole';
+import { useToast } from '../hooks/useToast';
+import { Modal } from '../components/Modal';
 import { useSessionsQuery, useSessionGroupsQuery, useCampaignsQuery } from '../hooks/queries';
 import { parseBulkRecipients, BULK_MAX_RECIPIENTS, BULK_RECIPIENTS_FILE_MAX_BYTES } from '../utils/bulkRecipients';
 import {
@@ -194,6 +196,63 @@ export function MessageTester() {
   const [searchParams] = useSearchParams();
   const { data: campaigns = [] } = useCampaignsQuery();
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
+  const toast = useToast();
+
+  // Voice note (PTT)
+  const [isVoiceNote, setIsVoiceNote] = useState(false);
+
+  // Gemini AI Writer state
+  const [isAiWriterOpen, setIsAiWriterOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiTone, setAiTone] = useState('Urdu / Roman Urdu Marketing');
+  const [aiGeneratedText, setAiGeneratedText] = useState('');
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [hasAiKey, setHasAiKey] = useState(false);
+  const [aiApiKeyInput, setAiApiKeyInput] = useState('');
+  const [isSavingAiKey, setIsSavingAiKey] = useState(false);
+
+  useEffect(() => {
+    if (isAiWriterOpen) {
+      campaignApi.getAiConfig()
+        .then(res => setHasAiKey(res.configured))
+        .catch(() => {});
+    }
+  }, [isAiWriterOpen]);
+
+  const handleSaveAiKey = async () => {
+    if (!aiApiKeyInput.trim()) return;
+    setIsSavingAiKey(true);
+    try {
+      await campaignApi.saveAiConfig({ geminiApiKey: aiApiKeyInput.trim() });
+      setHasAiKey(true);
+      toast.success(t('messageTester.aiKeySaved', 'Gemini API key saved successfully!'));
+    } catch {
+      toast.error(t('messageTester.aiKeyError', 'Failed to save Gemini API key'));
+    } finally {
+      setIsSavingAiKey(false);
+    }
+  };
+
+  const handleGenerateAiMessage = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGeneratingAi(true);
+    try {
+      const res = await campaignApi.generateAiMessage(aiPrompt, aiTone);
+      setAiGeneratedText(res.message);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate message with Gemini AI');
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const handleApplyAiMessage = () => {
+    if (aiGeneratedText) {
+      setContent(aiGeneratedText);
+      setIsAiWriterOpen(false);
+      toast.success('Message applied to composer!');
+    }
+  };
   const [chunkName, setChunkName] = useState('');
   const [recordedChunkInfo, setRecordedChunkInfo] = useState<{ campaignId: string; chunkName: string; chunkId?: string } | null>(null);
 
@@ -564,7 +623,7 @@ export function MessageTester() {
       // Bulk is a batch, not a single send: 202 + batchId, then poll progress until terminal.
       if (messageType === 'bulk') {
         const batch = await messageApi.sendBulk(session, {
-          messages: buildBulkMessages(bulkRecipientList, content, bulkAttachment),
+          messages: buildBulkMessages(bulkRecipientList, content, bulkAttachment, isVoiceNote),
           options: {
             delayBetweenMessages: minDelayMs,
             minDelayBetweenMessages: minDelayMs,
@@ -922,7 +981,30 @@ export function MessageTester() {
 
             {messageType === 'text' && (
               <div className="form-group">
-                <label htmlFor="mt-2">{t('messageTester.messageContent')}</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label htmlFor="mt-2" style={{ margin: 0 }}>{t('messageTester.messageContent')}</label>
+                  <button
+                    type="button"
+                    className="btn-ai-sparkle"
+                    onClick={() => setIsAiWriterOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Sparkles size={13} />
+                    <span>✨ {t('messageTester.aiWriteBtn', 'Gemini AI Assistant')}</span>
+                  </button>
+                </div>
                 <textarea
                   id="mt-2"
                   value={content}
@@ -937,6 +1019,19 @@ export function MessageTester() {
             {isMediaMessageType && (
               <>
                 {mediaSourceFields}
+                {messageType === 'audio' && (
+                  <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                    <label className="checkbox-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={isVoiceNote}
+                        onChange={e => setIsVoiceNote(e.target.checked)}
+                      />
+                      <Mic size={15} color={isVoiceNote ? '#10b981' : 'var(--text-muted)'} />
+                      <span>{t('messageTester.sendAsVoiceNote', 'Send as WhatsApp Voice Note (PTT mic bubble)')}</span>
+                    </label>
+                  </div>
+                )}
                 {messageType !== 'audio' && messageType !== 'sticker' && (
                   <div className="form-group">
                     <label htmlFor="mt-14">
@@ -1213,7 +1308,30 @@ export function MessageTester() {
                   </span>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="mt-12">{t('messageTester.messageContent')}</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <label htmlFor="mt-12" style={{ margin: 0 }}>{t('messageTester.messageContent')}</label>
+                    <button
+                      type="button"
+                      className="btn-ai-sparkle"
+                      onClick={() => setIsAiWriterOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.25rem 0.6rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Sparkles size={13} />
+                      <span>✨ {t('messageTester.aiWriteBtn', 'Gemini AI Assistant')}</span>
+                    </button>
+                  </div>
                   <textarea
                     id="mt-12"
                     value={content}
@@ -1235,6 +1353,19 @@ export function MessageTester() {
                   </span>
                 </div>
                 {mediaSourceFields}
+                {bulkAttachment && (bulkAttachment.kind === 'audio' || bulkMediaKind === 'audio') && (
+                  <div className="form-group" style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+                    <label className="checkbox-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={isVoiceNote}
+                        onChange={e => setIsVoiceNote(e.target.checked)}
+                      />
+                      <Mic size={15} color={isVoiceNote ? '#10b981' : 'var(--text-muted)'} />
+                      <span>{t('messageTester.sendAsVoiceNote', 'Send audio as WhatsApp Voice Notes (PTT)')}</span>
+                    </label>
+                  </div>
+                )}
                 {bulkAttachment && (
                   <div className="form-group">
                     <span className="group-label" id="bulk-media-kind-label">
@@ -1491,6 +1622,133 @@ export function MessageTester() {
           )}
         </div>
       </div>
+
+      {/* GEMINI AI WRITER MODAL */}
+      {isAiWriterOpen && (
+        <Modal
+          open={isAiWriterOpen}
+          title="✨ Gemini AI Marketing Copywriter"
+          onClose={() => setIsAiWriterOpen(false)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {!hasAiKey ? (
+              <div style={{ backgroundColor: 'var(--bg-muted, rgba(0,0,0,0.05))', padding: '1rem', borderRadius: '8px' }}>
+                <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                  Google Gemini AI is not yet configured with an API key. Enter your Gemini API key below to unlock automated high-converting WhatsApp message writing in English, Urdu, and Roman Urdu.
+                </p>
+                <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="ai-key-input">Gemini API Key</label>
+                  <input
+                    id="ai-key-input"
+                    type="password"
+                    value={aiApiKeyInput}
+                    onChange={e => setAiApiKeyInput(e.target.value)}
+                    placeholder="AIzaSy..."
+                  />
+                  <span className="hint" style={{ fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>Google AI Studio</a>.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleSaveAiKey}
+                  disabled={isSavingAiKey || !aiApiKeyInput.trim()}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {isSavingAiKey ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  <span>Save Gemini API Key</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="ai-prompt">What is your message about?</label>
+                  <textarea
+                    id="ai-prompt"
+                    rows={3}
+                    value={aiPrompt}
+                    onChange={e => setAiPrompt(e.target.value)}
+                    placeholder="e.g. Admission open for Web & Graphic Design Batch 2026, 30% discount till Friday, call Sir Zubair 0300..."
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label htmlFor="ai-tone">Message Style & Tone</label>
+                  <select
+                    id="ai-tone"
+                    value={aiTone}
+                    onChange={e => setAiTone(e.target.value)}
+                  >
+                    <option value="Urdu / Roman Urdu Marketing (مارکیٹنگ میسج)">Urdu / Roman Urdu Marketing (مارکیٹنگ میسج)</option>
+                    <option value="Professional English">Professional English</option>
+                    <option value="Urgent Limited-Time Offer (محدود مدت آفر)">Urgent Limited-Time Offer (محدود مدت آفر)</option>
+                    <option value="Friendly & Persuasive WhatsApp message">Friendly & Persuasive WhatsApp Message</option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleGenerateAiMessage}
+                  disabled={isGeneratingAi || !aiPrompt.trim()}
+                  style={{
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                    justifyContent: 'center',
+                    padding: '0.65rem 1rem',
+                  }}
+                >
+                  {isGeneratingAi ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  <span>{isGeneratingAi ? 'Generating Copy with Gemini...' : 'Generate Marketing Message'}</span>
+                </button>
+
+                {aiGeneratedText && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
+                      Generated WhatsApp Copy:
+                    </label>
+                    <div
+                      style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: 'var(--bg-muted, rgba(0,0,0,0.03))',
+                        border: '1px solid var(--border-color, #e2e8f0)',
+                        borderRadius: '8px',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: '0.9rem',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {aiGeneratedText}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleGenerateAiMessage}
+                        disabled={isGeneratingAi}
+                      >
+                        Regenerate
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={handleApplyAiMessage}
+                      >
+                        <CheckCircle size={16} />
+                        <span>Use This Message</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }

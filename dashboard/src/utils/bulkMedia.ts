@@ -110,11 +110,15 @@ export function buildBulkMessages(
   chatIds: readonly string[],
   text: string,
   attachment: BulkAttachment | null,
+  isPtt = false,
 ): BulkMessageItem[] {
   return chatIds.map(chatId => {
     if (!attachment) return { chatId, type: 'text', content: { text } };
     const content: BulkMessageItem['content'] = text.trim() ? { caption: text } : {};
     content[attachment.kind] = attachment.media;
+    if (attachment.kind === 'audio' && isPtt && content.audio) {
+      (content.audio as any).ptt = true;
+    }
     return { chatId, type: attachment.kind, content };
   });
 }

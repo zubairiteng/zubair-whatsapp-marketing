@@ -65,7 +65,7 @@
     "webhooks": "Webhooks",
     "templates": "Templates",
     "apiKeys": "API Keys",
-    "messageTester": "Message Tester",
+    "messageTester": "Send Messages",
     "infrastructure": "Infrastructure",
     "plugins": "Plugins",
     "logs": "Logs",
@@ -747,10 +747,10 @@
     "exportNoMatchesTruncated": "None of the newest {{rows}} entries scanned match the search, so nothing was exported. Older entries were not searched."
   },
   "messageTester": {
-    "title": "Message Tester",
-    "subtitle": "Send test messages through the API",
-    "compose": "Send Test Message",
-    "responseTitle": "API Response",
+    "title": "Send Messages",
+    "subtitle": "Send individual or bulk messages to your contacts",
+    "compose": "Compose Message",
+    "responseTitle": "Delivery Status",
     "session": "Session",
     "noReadySessions": "No ready sessions",
     "sessionOptionPhoneNone": "No phone",
@@ -870,10 +870,10 @@
     "bulkDelayOrderError": "Minimum delay cannot exceed maximum delay",
     "bulkCampaign": "Campaign",
     "bulkCampaignNone": "None (Manual / Direct)",
-    "bulkChunkName": "Execution Chunk Name",
-    "bulkChunkNamePlaceholder": "e.g. Batch 1",
-    "chunkRecorded": "Recorded in Campaign",
-    "viewAnalytics": "View Responses & Analytics"
+    "bulkChunkName": "Campaign Round",
+    "bulkChunkNamePlaceholder": "e.g. Round 1",
+    "chunkRecorded": "Recorded in Campaign as Round",
+    "viewAnalytics": "View Round Analytics & Responses"
   },
   "infrastructure": {
     "title": "Infrastructure",
