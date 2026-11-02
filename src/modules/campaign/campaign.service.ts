@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
@@ -48,7 +48,7 @@ const ACK_REGEX = /\b(ok|okay|okey|okk|oky|k|kk|done|thanks|thank you|thx|ty|tnx
 const EMOJI_REGEX = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic})+$/u;
 
 @Injectable()
-export class CampaignService {
+export class CampaignService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CampaignService.name);
 
   constructor(
@@ -61,6 +61,43 @@ export class CampaignService {
     @InjectRepository(LidMapping, 'data')
     private readonly lidRepo: Repository<LidMapping>,
   ) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    await this.ensureCampaignTablesExist();
+  }
+
+  private async ensureCampaignTablesExist(): Promise<void> {
+    try {
+      await this.campaignRepo.query(`
+        CREATE TABLE IF NOT EXISTS "campaigns" (
+          "id" varchar PRIMARY KEY NOT NULL,
+          "name" varchar(150) NOT NULL,
+          "description" text,
+          "sessionId" varchar(150),
+          "recipients" text NOT NULL DEFAULT '[]',
+          "tags" text,
+          "created_at" datetime NOT NULL DEFAULT (datetime('now')),
+          "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      await this.campaignRepo.query(`
+        CREATE TABLE IF NOT EXISTS "campaign_chunks" (
+          "id" varchar PRIMARY KEY NOT NULL,
+          "campaignId" varchar NOT NULL,
+          "chunkName" varchar(150) NOT NULL,
+          "sessionId" varchar NOT NULL,
+          "batchId" varchar,
+          "messageType" varchar NOT NULL DEFAULT 'text',
+          "messageContent" text,
+          "recipients" text NOT NULL DEFAULT '[]',
+          "created_at" datetime NOT NULL DEFAULT (datetime('now')),
+          "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+    } catch (err) {
+      this.logger.warn(`Notice while ensuring campaign tables: ${String(err)}`);
+    }
+  }
 
   async create(dto: CreateCampaignDto, sessionId?: string): Promise<Campaign> {
     const campaign = this.campaignRepo.create({

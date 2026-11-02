@@ -12,6 +12,8 @@ services:
         value: production
       - key: DATABASE_TYPE
         value: sqlite
+      - key: DATABASE_SYNCHRONIZE
+        value: "true"
       - key: SERVE_DASHBOARD
         value: "true"
       - key: ALLOW_DEV_API_KEY
