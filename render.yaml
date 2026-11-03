@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: zubair-whatsapp-suite
+    name: zubair-whatsapp-marketing
     env: docker
     dockerfilePath: Dockerfile
     plan: standard
@@ -13,9 +13,21 @@ services:
       - key: ENGINE_TYPE
         value: baileys
       - key: DATABASE_TYPE
-        value: sqlite
+        value: postgres
+      - key: DATABASE_HOST
+        value: dpg-dbkojfqjnfac739ht270-a
+      - key: DATABASE_PORT
+        value: "5432"
+      - key: DATABASE_USERNAME
+        value: openwa_db_xgsi_user
+      - key: DATABASE_PASSWORD
+        value: NfUtVSRlKEZrkO4hLnexHPERhKAfXbx7
+      - key: DATABASE_NAME
+        value: openwa_db_xgsi
       - key: DATABASE_SYNCHRONIZE
-        value: "true"
+        value: "false"
+      - key: DATABASE_URL
+        value: postgresql://openwa_db_xgsi_user:NfUtVSRlKEZrkO4hLnexHPERhKAfXbx7@dpg-dbkojfqjnfac739ht270-a/openwa_db_xgsi
       - key: SERVE_DASHBOARD
         value: "true"
       - key: ALLOW_DEV_API_KEY

@@ -26,6 +26,29 @@ const logger = createLogger('Bootstrap');
  * body would run too late: ES imports are hoisted and the whole module graph evaluates before the body.
  */
 export function loadEnvironment(): void {
+  // Auto-connect to PostgreSQL when DATABASE_URL or Render cloud environment is detected
+  const defaultRenderPg = 'postgresql://openwa_db_xgsi_user:NfUtVSRlKEZrkO4hLnexHPERhKAfXbx7@dpg-dbkojfqjnfac739ht270-a/openwa_db_xgsi';
+  const dbUrl = process.env.DATABASE_URL || (process.env.RENDER || process.env.IS_RENDER || process.env.RENDER_SERVICE_ID ? defaultRenderPg : undefined);
+
+  if (dbUrl && (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://'))) {
+    try {
+      const parsed = new URL(dbUrl);
+      process.env.DATABASE_TYPE = 'postgres';
+      if (!process.env.DATABASE_HOST) process.env.DATABASE_HOST = parsed.hostname;
+      if (!process.env.DATABASE_PORT) process.env.DATABASE_PORT = parsed.port || '5432';
+      if (!process.env.DATABASE_USERNAME) process.env.DATABASE_USERNAME = decodeURIComponent(parsed.username);
+      if (!process.env.DATABASE_PASSWORD) process.env.DATABASE_PASSWORD = decodeURIComponent(parsed.password);
+      if (!process.env.DATABASE_NAME) process.env.DATABASE_NAME = parsed.pathname.replace(/^\//, '');
+      process.env.DATABASE_SYNCHRONIZE = 'false';
+      if (!process.env.DATABASE_SSL) {
+        process.env.DATABASE_SSL = parsed.hostname.includes('render.com') || parsed.searchParams.get('ssl') === 'true' || parsed.searchParams.get('sslmode') === 'require' ? 'true' : 'false';
+      }
+      logger.log(`PostgreSQL configured via DATABASE_URL on ${process.env.DATABASE_HOST}/${process.env.DATABASE_NAME}`);
+    } catch (e) {
+      logger.warn(`Failed to parse DATABASE_URL: ${String(e)}`);
+    }
+  }
+
   const generatedEnvPath = path.resolve(process.cwd(), 'data', '.env.generated');
   const userEnvPath = path.resolve(process.cwd(), '.env');
 
