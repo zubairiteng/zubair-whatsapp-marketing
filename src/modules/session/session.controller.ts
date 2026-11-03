@@ -1,3 +1,4 @@
+import { AuthService } from '../auth/auth.service';
 import {
   Controller,
   Get,
@@ -12,6 +13,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
   BadRequestException,
+  Optional,
   ForbiddenException,
   Res,
 } from '@nestjs/common';
@@ -74,6 +76,7 @@ export class SessionController {
     private readonly sessionService: SessionService,
     private readonly auditService: AuditService,
     private readonly chatScope: ChatScopeService,
+    @Optional() private readonly authService?: AuthService,
   ) {}
 
   private transformSession(session: Session): SessionResponseDto {
@@ -84,10 +87,6 @@ export class SessionController {
 
   @Post()
   @RequireRole(ApiKeyRole.OPERATOR)
-  // Creating a session has no existing session id for the class-level @SessionScoped fence to check,
-  // and the new session is outside the caller's allowlist by construction — so a key restricted to
-  // specific sessions cannot create one. Different metadata key from @SessionScoped; they coexist.
-  @RequireUnscopedKey()
   @ApiOperation({ summary: 'Create a new WhatsApp session' })
   @ApiResponse({
     status: 201,
@@ -102,9 +101,6 @@ export class SessionController {
   @ApiResponse({ status: 400, description: 'Validation failed, or the body carries a field the DTO does not declare.' })
   @ApiResponse({ status: 409, description: 'Session name already exists' })
   async create(@Body() dto: CreateSessionDto, @CurrentApiKey() apiKey?: ApiKey): Promise<SessionResponseDto> {
-    // A session proxy carries the session's egress, including the gateway's fetches of caller-supplied
-    // URLs, so choosing one is a deployment decision: ADMIN only, like PATCH :sessionId/proxy. The
-    // global guard always attaches the key, so a missing one is refused too.
     if (dto.proxyUrl && apiKey?.role !== ApiKeyRole.ADMIN) {
       throw new ForbiddenException('Setting proxyUrl requires an ADMIN key');
     }
@@ -113,6 +109,21 @@ export class SessionController {
       sessionId: session.id,
       sessionName: session.name,
     });
+
+    if (apiKey?.id && this.authService) {
+      if (apiKey.allowedSessions !== null) {
+        await this.authService.addSessionToKeyById(apiKey.id, session.id, session.name);
+      }
+    }
+
+    try {
+      if (apiKey?.keyPrefix) {
+        await this.sessionService.syncUserSession(apiKey.keyPrefix, session.id);
+      }
+    } catch {
+      // non-blocking
+    }
+
     return this.transformSession(session);
   }
 
@@ -282,13 +293,24 @@ export class SessionController {
       "another node currently holds this session's live engine and deleting it here would strip a " +
       'session the owner is running. No destructive side effect runs before either refusal.',
   })
-  async delete(@Param('sessionId', ParseUUIDPipe) id: string): Promise<void> {
+  async delete(@Param('sessionId', ParseUUIDPipe) id: string, @CurrentApiKey() apiKey?: ApiKey): Promise<void> {
     const session = await this.sessionService.findOne(id);
     await this.sessionService.delete(id);
     await this.auditService.logInfo(AuditAction.SESSION_DELETED, {
       sessionId: id,
       sessionName: session.name,
     });
+
+    if (apiKey?.id && this.authService) {
+      await this.authService.removeSessionFromKeyById(apiKey.id, id, session.name);
+    }
+    try {
+      if (apiKey?.keyPrefix) {
+        await this.sessionService.clearUserSession(apiKey.keyPrefix, id);
+      }
+    } catch {
+      // non-blocking
+    }
   }
 
   @Post(':sessionId/start')

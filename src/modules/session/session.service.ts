@@ -437,6 +437,28 @@ export class SessionService implements OnModuleDestroy, OnModuleInit, OnApplicat
     return saved;
   }
 
+  async syncUserSession(keyPrefix: string, sessionId: string): Promise<void> {
+    try {
+      await this.dataSource.query(
+        'UPDATE "users" SET "sessionId" = $1 WHERE "apiKey" LIKE $2',
+        [sessionId, `${keyPrefix}%`]
+      );
+    } catch (e) {
+      this.logger.warn(`Could not sync user session: ${String(e)}`);
+    }
+  }
+
+  async clearUserSession(keyPrefix: string, sessionId: string): Promise<void> {
+    try {
+      await this.dataSource.query(
+        'UPDATE "users" SET "sessionId" = NULL WHERE "sessionId" = $1 OR "apiKey" LIKE $2',
+        [sessionId, `${keyPrefix}%`]
+      );
+    } catch (e) {
+      this.logger.warn(`Could not clear user session: ${String(e)}`);
+    }
+  }
+
   async findAll(allowedSessions?: string[] | null, opts: SessionListOptions = {}): Promise<Session[]> {
     // A session-restricted key only lists its own sessions; an unrestricted key (null/empty
     // allowlist) lists all — mirroring the ApiKeyGuard allowedSessions model so a scoped key

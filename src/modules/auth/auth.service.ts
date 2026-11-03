@@ -573,6 +573,44 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async addSessionToKeyById(keyId: string, sessionId: string, sessionName?: string): Promise<void> {
+    try {
+      const apiKey = await this.apiKeyRepository.findOne({ where: { id: keyId } });
+      if (apiKey) {
+        const list = apiKey.allowedSessions || [];
+        const toAdd = [sessionId];
+        if (sessionName && !toAdd.includes(sessionName)) toAdd.push(sessionName);
+        let updated = false;
+        for (const item of toAdd) {
+          if (!list.includes(item)) {
+            list.push(item);
+            updated = true;
+          }
+        }
+        if (updated) {
+          apiKey.allowedSessions = list;
+          await this.apiKeyRepository.save(apiKey);
+          this.keyIndex?.refreshSoon();
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Could not add session to key: ${String(e)}`);
+    }
+  }
+
+  async removeSessionFromKeyById(keyId: string, sessionId: string, sessionName?: string): Promise<void> {
+    try {
+      const apiKey = await this.apiKeyRepository.findOne({ where: { id: keyId } });
+      if (apiKey && apiKey.allowedSessions) {
+        apiKey.allowedSessions = apiKey.allowedSessions.filter(s => s !== sessionId && s !== sessionName);
+        await this.apiKeyRepository.save(apiKey);
+        this.keyIndex?.refreshSoon();
+      }
+    } catch (e) {
+      this.logger.warn(`Could not remove session from key: ${String(e)}`);
+    }
+  }
+
   private hashKey(rawKey: string): string {
     return hashApiKey(rawKey, process.env.API_KEY_PEPPER);
   }

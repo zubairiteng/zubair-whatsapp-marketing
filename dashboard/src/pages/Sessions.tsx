@@ -72,7 +72,7 @@ export function Sessions() {
   const toast = useToast();
   const { canWrite, isAdmin, scoped } = useRole();
   // Creating a session and changing its proxy are refused for any session-scoped key, whatever its role.
-  const canCreate = canWrite && !scoped;
+  const canCreate = canWrite;
   const canEditProxy = isAdmin && !scoped;
   const queryClient = useQueryClient();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -1229,6 +1229,16 @@ export function Sessions() {
             <QrCode size={48} />
             <h3>{t('sessions.empty.title')}</h3>
             <p>{t('sessions.empty.description')}</p>
+            {canCreate && (
+              <button
+                className="btn-primary"
+                style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '0.95rem' }}
+                onClick={() => setShowCreateModal(true)}
+              >
+                <Plus size={18} />
+                {t('sessions.newSession')}
+              </button>
+            )}
           </div>
         ) : (
           filteredSessions.map(session => (
