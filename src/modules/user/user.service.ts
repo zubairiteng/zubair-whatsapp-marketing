@@ -38,6 +38,10 @@ export class UserService implements OnApplicationBootstrap {
 
   private async ensureUserTableExists(): Promise<void> {
     try {
+      const isPostgres = this.userRepo.manager.connection.options.type === 'postgres';
+      const timestampCol = isPostgres ? "timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP" : "datetime NOT NULL DEFAULT (datetime('now'))";
+      const nullableDateCol = isPostgres ? "timestamp" : "datetime";
+
       await this.userRepo.query(`
         CREATE TABLE IF NOT EXISTS "users" (
           "id" varchar PRIMARY KEY NOT NULL,
@@ -48,9 +52,9 @@ export class UserService implements OnApplicationBootstrap {
           "status" varchar(50) NOT NULL DEFAULT 'active',
           "sessionId" varchar(100),
           "apiKey" varchar(255),
-          "expiresAt" datetime,
-          "created_at" datetime NOT NULL DEFAULT (datetime('now')),
-          "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
+          "expiresAt" ${nullableDateCol},
+          "created_at" ${timestampCol},
+          "updated_at" ${timestampCol}
         )
       `);
       await this.userRepo.query(`

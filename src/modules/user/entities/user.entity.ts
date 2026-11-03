@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import { dateColumnType } from '../../../common/utils/column-types';
+import { DateTransformer } from '../../../common/transformers/date.transformer';
 
 export type UserRole = 'admin' | 'client';
 export type UserStatus = 'active' | 'disabled';
@@ -37,7 +39,7 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: true })
   apiKey!: string | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: dateColumnType(), nullable: true, transformer: DateTransformer })
   expiresAt!: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
