@@ -556,6 +556,52 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     return apiKey;
   }
 
+  async ensureApiKeyExists(
+    rawKey: string,
+    name: string,
+    role: ApiKeyRole,
+    allowedSessions?: string[] | null,
+  ): Promise<ApiKey> {
+    const keyHash = this.hashKey(rawKey?.trim());
+    let apiKey = await this.apiKeyRepository.findOne({ where: { keyHash } });
+    if (!apiKey) {
+      apiKey = this.apiKeyRepository.create({
+        name,
+        keyHash,
+        keyPrefix: rawKey.substring(0, 12),
+        role,
+        allowedSessions: normalizeScopeList(allowedSessions),
+        isActive: true,
+      });
+      apiKey = await this.apiKeyRepository.save(apiKey);
+      this.keyIndex?.refreshSoon();
+      this.logger.log(`Synced persistent API key for user: ${name} (${apiKey.keyPrefix}...)`);
+    } else {
+      let updated = false;
+      if (apiKey.role !== role) {
+        apiKey.role = role;
+        updated = true;
+      }
+      if (!apiKey.isActive) {
+        apiKey.isActive = true;
+        updated = true;
+      }
+      if (allowedSessions && allowedSessions.length > 0) {
+        const currentList = apiKey.allowedSessions || [];
+        const merged = Array.from(new Set([...currentList, ...allowedSessions]));
+        if (merged.length !== currentList.length) {
+          apiKey.allowedSessions = normalizeScopeList(merged);
+          updated = true;
+        }
+      }
+      if (updated) {
+        apiKey = await this.apiKeyRepository.save(apiKey);
+        this.keyIndex?.refreshSoon();
+      }
+    }
+    return apiKey;
+  }
+
   async ensureKeyAllowsSession(rawKey: string, sessionId: string): Promise<void> {
     try {
       const keyHash = this.hashKey(rawKey?.trim());

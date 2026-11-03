@@ -32,3 +32,5 @@ services:
         value: "true"
       - key: ALLOW_DEV_API_KEY
         value: "false"
+      - key: API_MASTER_KEY
+        value: owa_k1_zubair_marketing_master_key_2026_render

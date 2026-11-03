@@ -34,6 +34,26 @@ export class UserService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     await this.ensureUserTableExists();
     await this.seedAdminIfNone();
+    await this.syncAllUserApiKeys();
+  }
+
+  private async syncAllUserApiKeys(): Promise<void> {
+    try {
+      const users = await this.userRepo.find();
+      for (const user of users) {
+        if (user.apiKey) {
+          await this.authService.ensureApiKeyExists(
+            user.apiKey,
+            user.role === 'admin' ? `Admin: ${user.name}` : `Client: ${user.name}`,
+            user.role === 'admin' ? ApiKeyRole.ADMIN : ApiKeyRole.OPERATOR,
+            user.sessionId ? [user.sessionId] : null,
+          );
+        }
+      }
+      this.logger.log(`Synced ${users.length} persistent user API keys to auth store.`);
+    } catch (err) {
+      this.logger.warn(`Could not sync user API keys on boot: ${String(err)}`);
+    }
   }
 
   private async ensureUserTableExists(): Promise<void> {
@@ -68,22 +88,11 @@ export class UserService implements OnApplicationBootstrap {
   private async seedAdminIfNone(): Promise<void> {
     try {
       await this.ensureUserTableExists();
-      const adminCount = await this.userRepo.count({ where: { role: 'admin' } });
-      if (adminCount === 0) {
-        let masterApiKey = readBootstrapKey(this.logger);
-        
-        if (!masterApiKey) {
-          try {
-            const created = await this.authService.createApiKey({
-              name: 'Master Admin Key',
-              role: ApiKeyRole.ADMIN,
-            });
-            masterApiKey = created.rawKey;
-          } catch (e) {
-            masterApiKey = 'owa_k1_' + randomBytes(32).toString('hex');
-          }
-        }
+      const masterKey = process.env.API_MASTER_KEY?.trim() || readBootstrapKey(this.logger) || 'owa_k1_zubair_marketing_master_key_2026_render';
+      const existingAdmin = await this.userRepo.findOne({ where: { role: 'admin' } });
 
+      if (!existingAdmin) {
+        await this.authService.ensureApiKeyExists(masterKey, 'Master Admin Key', ApiKeyRole.ADMIN);
         const admin = this.userRepo.create({
           id: randomUUID(),
           name: 'Zubair Ahmed',
@@ -92,15 +101,22 @@ export class UserService implements OnApplicationBootstrap {
           role: 'admin',
           status: 'active',
           sessionId: null, // Admin can access all sessions
-          apiKey: masterApiKey,
+          apiKey: masterKey,
           expiresAt: null,
         });
 
         await this.userRepo.save(admin);
         this.logger.log('Seeded Master Admin: admin@zubairahmed.com');
+      } else {
+        const adminKey = existingAdmin.apiKey || masterKey;
+        if (!existingAdmin.apiKey) {
+          existingAdmin.apiKey = adminKey;
+          await this.userRepo.save(existingAdmin);
+        }
+        await this.authService.ensureApiKeyExists(adminKey, 'Master Admin Key', ApiKeyRole.ADMIN);
       }
     } catch (err) {
-      this.logger.warn(`Could not seed master admin: ${String(err)}`);
+      this.logger.warn(`Notice while seeding master admin: ${String(err)}`);
     }
   }
 
@@ -149,32 +165,19 @@ export class UserService implements OnApplicationBootstrap {
         }
       }
 
-      // Ensure user has valid API key
+      // Ensure user has valid API key and that it is active in auth service
       if (!user.apiKey) {
-        if (user.role === 'admin') {
-          try {
-            const key = await this.authService.createApiKey({
-              name: `Admin: ${user.name}`,
-              role: ApiKeyRole.ADMIN,
-            });
-            user.apiKey = key.rawKey;
-          } catch {
-            user.apiKey = 'owa_k1_' + randomBytes(32).toString('hex');
-          }
-        } else {
-          try {
-            const key = await this.authService.createApiKey({
-              name: `Client: ${user.name}`,
-              role: ApiKeyRole.OPERATOR,
-              allowedSessions: user.sessionId ? [user.sessionId] : [],
-            });
-            user.apiKey = key.rawKey;
-          } catch {
-            user.apiKey = 'owa_k1_' + randomBytes(32).toString('hex');
-          }
-        }
-        await this.userRepo.save(user);
+        user.apiKey = `owa_k1_${randomBytes(32).toString('hex')}`;
       }
+
+      await this.authService.ensureApiKeyExists(
+        user.apiKey,
+        user.role === 'admin' ? `Admin: ${user.name}` : `Client: ${user.name}`,
+        user.role === 'admin' ? ApiKeyRole.ADMIN : ApiKeyRole.OPERATOR,
+        user.sessionId ? [user.sessionId] : null,
+      );
+
+      await this.userRepo.save(user);
 
       // Auto-heal: If client has a session name rather than a UUID, resolve it
       const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

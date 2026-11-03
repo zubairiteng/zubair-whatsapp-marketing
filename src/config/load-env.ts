@@ -49,6 +49,10 @@ export function loadEnvironment(): void {
     }
   }
 
+  if (!process.env.API_MASTER_KEY) {
+    process.env.API_MASTER_KEY = 'owa_k1_zubair_marketing_master_key_2026_render';
+  }
+
   const generatedEnvPath = path.resolve(process.cwd(), 'data', '.env.generated');
   const userEnvPath = path.resolve(process.cwd(), '.env');
 
