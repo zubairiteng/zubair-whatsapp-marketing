@@ -24,7 +24,7 @@ import { ApiKeyUsageTracker } from './api-key-usage-tracker.service';
 import { ActiveKeyIndex } from './active-key-index';
 import { apiKeyAuthorizationFingerprint, normalizeScopeList } from './api-key-authorization';
 import { normalizeChatAllowList } from '../../common/security/chat-scope';
-import { EventsGateway, type ApiKeyEvictionReason } from '../events/events.gateway';
+import type { EventsGateway, ApiKeyEvictionReason } from '../events/events.gateway';
 
 /**
  * A 401 that names no stored key: the credential was missing or matched no row. Producing one costs
@@ -467,7 +467,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
    */
   private evictActiveSockets(keyId: string, reason: ApiKeyEvictionReason = 'revoked'): void {
     try {
-      const gateway = this.moduleRef.get(EventsGateway, { strict: false });
+      const { EventsGateway } = require('../events/events.gateway'); const gateway = this.moduleRef.get(EventsGateway, { strict: false });
       if (gateway) {
         gateway.evictApiKey(keyId, reason);
       }

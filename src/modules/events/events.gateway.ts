@@ -9,7 +9,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import { createLogger } from '../../common/services/logger.service';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth/auth.service';
@@ -174,7 +174,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   private static readonly MAX_VIOLATION_KEYS = 10_000;
 
   constructor(
-    private readonly authService: AuthService,
+    @Inject(forwardRef(() => AuthService)) private readonly authService: AuthService,
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
     private readonly chatScope: ChatScopeService = new ChatScopeService(),

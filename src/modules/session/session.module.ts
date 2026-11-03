@@ -1,4 +1,3 @@
-import { AuthModule } from '../auth/auth.module';
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -27,7 +26,6 @@ import { PLUGIN_SESSION_PORT } from '../../core/plugins/plugin-host-ports';
   // back, so the dependency is one-directional — no forwardRef() needed.
   imports: [
     TypeOrmModule.forFeature([Session, Message], 'data'),
-    AuthModule,
     WebhookModule,
     StatusStoreModule,
     ChatMediaModule,
