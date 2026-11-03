@@ -450,7 +450,31 @@ export class SessionService implements OnModuleDestroy, OnModuleInit, OnApplicat
     };
     const where: FindOptionsWhere<Session> = {};
     if (allowedSessions && allowedSessions.length > 0) {
-      where.id = In(allowedSessions);
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidList = allowedSessions.filter(s => uuidRegex.test(s));
+      const nameList = allowedSessions.filter(s => !uuidRegex.test(s));
+
+      if (nameList.length > 0) {
+        try {
+          const matchedByName = await this.sessionRepository.find({
+            select: { id: true },
+            where: { name: In(nameList) },
+          });
+          for (const m of matchedByName) {
+            if (!uuidList.includes(m.id)) {
+              uuidList.push(m.id);
+            }
+          }
+        } catch (err) {
+          this.logger.warn(`Could not resolve names in allowedSessions: ${String(err)}`);
+        }
+      }
+
+      if (uuidList.length > 0) {
+        where.id = In(uuidList);
+      } else {
+        return [];
+      }
     }
     // Exact, case-sensitive match. Only a non-empty string reaches TypeORM: anything else (an
     // array from a repeated query key, an empty value) is not a name and must not become one.

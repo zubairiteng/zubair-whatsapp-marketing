@@ -1268,6 +1268,23 @@ export function Sessions() {
                     <span className="info-label">{t('sessions.card.lastActive')}</span>
                     <span className="info-value">{formatLastActive(session.lastActive)}</span>
                   </div>
+                  {canWrite && !session.phone && (session.status === 'created' || session.status === 'disconnected') && (
+                    <div style={{ marginTop: '14px', marginBottom: '6px' }}>
+                      <button
+                        className="btn-primary"
+                        style={{ width: '100%', justifyContent: 'center', gap: '8px', padding: '10px 14px', fontSize: '0.95rem' }}
+                        onClick={() => handleStart(session.id)}
+                        disabled={startingIds.has(session.id)}
+                      >
+                        {startingIds.has(session.id) ? (
+                          <Loader2 className="animate-spin" size={18} />
+                        ) : (
+                          <QrCode size={18} />
+                        )}
+                        <span>{startingIds.has(session.id) ? t('sessions.qr.loading') : 'Connect WhatsApp (Scan QR)'}</span>
+                      </button>
+                    </div>
+                  )}
                   {(session.status === 'failed' || session.status === 'action_required') && session.lastError ? (
                     <div className="info-row session-error">
                       <span className="info-label">{t('sessions.card.error')}</span>

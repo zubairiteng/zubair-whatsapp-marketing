@@ -183,7 +183,9 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
 
         <nav className="sidebar-nav">
           {navItems.map(({ to, icon: Icon, key }) => {
-            const label = t(`nav.${key}`);
+            let label = t(`nav.${key}`);
+            if (key === 'messageTester') label = t('nav.sendMessages', 'Send Messages');
+            if (key === 'clients') label = t('nav.clients', 'Client Accounts');
             return (
               <NavLink
                 key={to}

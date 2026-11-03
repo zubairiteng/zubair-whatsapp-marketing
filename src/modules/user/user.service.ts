@@ -172,6 +172,29 @@ export class UserService implements OnApplicationBootstrap {
         await this.userRepo.save(user);
       }
 
+      // Auto-heal: If client has a session name rather than a UUID, resolve it
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (user.role === 'client' && user.sessionId) {
+        if (!UUID_REGEX.test(user.sessionId)) {
+          try {
+            const found = await this.sessionService.findAll(null, { name: user.sessionId });
+            if (found && found.length > 0) {
+              const matchedSession = found[0];
+              user.sessionId = matchedSession.id;
+              if (user.apiKey) {
+                await this.authService.ensureKeyAllowsSession(user.apiKey, matchedSession.id);
+                await this.authService.ensureKeyAllowsSession(user.apiKey, matchedSession.name);
+              }
+              await this.userRepo.save(user);
+            }
+          } catch (e) {
+            this.logger.warn(`Could not auto-migrate client sessionId: ${String(e)}`);
+          }
+        } else if (user.apiKey) {
+          await this.authService.ensureKeyAllowsSession(user.apiKey, user.sessionId);
+        }
+      }
+
       let daysRemaining: number | undefined;
       if (user.expiresAt) {
         const ms = new Date(user.expiresAt).getTime() - Date.now();
@@ -258,23 +281,27 @@ export class UserService implements OnApplicationBootstrap {
 
     const cleanName = dto.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'user';
     const rand = randomBytes(3).toString('hex');
-    const sessionId = `client_${cleanName}_${rand}`;
+    const sessionName = `client_${cleanName}_${rand}`;
 
+    let createdSession: any;
     try {
-      await this.sessionService.create({ name: sessionId });
+      createdSession = await this.sessionService.create({ name: sessionName });
     } catch (e) {
       this.logger.warn(`Session create notice: ${String(e)}`);
     }
 
+    const actualSessionId = createdSession?.id || sessionName;
     const validityDays = dto.validityDays && dto.validityDays > 0 ? dto.validityDays : 30;
     const expiresAt = new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000);
+
+    const allowedSessions = createdSession?.id ? [createdSession.id, sessionName] : [sessionName];
 
     let rawApiKey: string;
     try {
       const key = await this.authService.createApiKey({
         name: `Client: ${dto.name}`,
         role: ApiKeyRole.OPERATOR,
-        allowedSessions: [sessionId],
+        allowedSessions,
         expiresAt: expiresAt.toISOString(),
       });
       rawApiKey = key.rawKey;
@@ -289,11 +316,10 @@ export class UserService implements OnApplicationBootstrap {
       passwordHash: hashPassword(dto.password),
       role: 'client',
       status: 'active',
-      sessionId,
+      sessionId: actualSessionId,
       apiKey: rawApiKey,
       expiresAt,
     });
-
     const saved = await this.userRepo.save(user);
 
     return {

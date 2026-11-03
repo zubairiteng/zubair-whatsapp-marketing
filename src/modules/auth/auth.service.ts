@@ -556,6 +556,23 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     return apiKey;
   }
 
+  async ensureKeyAllowsSession(rawKey: string, sessionId: string): Promise<void> {
+    try {
+      const keyHash = this.hashKey(rawKey?.trim());
+      const apiKey = await this.apiKeyRepository.findOne({ where: { keyHash } });
+      if (apiKey) {
+        const list = apiKey.allowedSessions || [];
+        if (!list.includes(sessionId)) {
+          apiKey.allowedSessions = [...list, sessionId];
+          await this.apiKeyRepository.save(apiKey);
+          this.keyIndex?.refreshSoon();
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Could not update apiKey allowedSessions: ${String(e)}`);
+    }
+  }
+
   private hashKey(rawKey: string): string {
     return hashApiKey(rawKey, process.env.API_KEY_PEPPER);
   }

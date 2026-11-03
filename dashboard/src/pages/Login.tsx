@@ -50,7 +50,7 @@ export function Login({ onLogin }: LoginProps) {
         onLogin(
           res.token,
           res.user.role,
-          'whatsapp-web.js',
+          'baileys',
           res.user.role !== 'admin'
         );
       } else {

@@ -1,11 +1,12 @@
 // Role types for RBAC
-export type UserRole = 'admin' | 'operator' | 'viewer';
+export type UserRole = 'admin' | 'operator' | 'viewer' | 'client';
 
 export interface RoleContextType {
   role: UserRole | null;
   setRole: (role: UserRole | null) => void;
   isAdmin: boolean;
   isOperator: boolean;
+  isClient: boolean;
   isViewer: boolean;
   canWrite: boolean;
   /** Engine the gateway runs, as POST /auth/validate reported it; null until it has answered. */
