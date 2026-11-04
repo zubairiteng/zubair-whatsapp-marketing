@@ -1,6 +1,7 @@
 import { INestApplication, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import helmet from 'helmet';
+import compression from 'compression';
 import { Request, Response, NextFunction, json, urlencoded } from 'express';
 import { randomBytes } from 'crypto';
 import { existsSync, readFileSync } from 'fs';
@@ -65,6 +66,9 @@ export function configureApp(app: INestApplication, options: ConfigureAppOptions
   // Assign a request id to every inbound request (X-Request-ID), echo it on the response, and run
   // the whole downstream chain inside its scope so every log line + audit row carries it.
   app.use(requestContextMiddleware);
+
+  // Response compression (gzip/deflate) to speed up JSON and asset transfer
+  app.use(compression());
 
   // Give every response a CSP nonce. A bundled dashboard document receives its own value in a meta
   // element below; plugin config UIs copy it only onto inline scripts in their opaque sandboxed iframe.

@@ -101,6 +101,16 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
       // Let Nest own these so unknown API/socket routes return real 404s/JSON rather
       // than the SPA index.html fallback (Express 5 / path-to-regexp v8 wildcard syntax).
       exclude: ['/api/{*splat}', '/socket.io/{*splat}', '/mcp', '/mcp/{*splat}'],
+      serveStaticOptions: {
+        setHeaders: (res: any, filePath: string) => {
+          if (filePath.includes('/assets/') || filePath.includes('\\assets\\')) {
+            // Hashed Vite assets are immutable and can be cached aggressively
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+          }
+        },
+      },
       // Disable this module's OWN catch-all SPA fallback. configure-app.ts already serves dashboard
       // documents (it injects the per-response CSP nonce, which is why it must own them), and
       // that handler is correctly narrow: it skips /assets and only answers extensionless paths
