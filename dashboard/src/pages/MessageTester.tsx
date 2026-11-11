@@ -858,6 +858,41 @@ export function MessageTester() {
         </div>
       )}
 
+      {allSessions.length > 0 && sessions.length === 0 && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '0.875rem 1.25rem',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            color: '#b45309',
+            marginBottom: '1.25rem',
+            fontSize: '0.9rem',
+            lineHeight: 1.5,
+          }}
+        >
+          <AlertCircle size={22} style={{ flexShrink: 0, color: '#f59e0b' }} />
+          <div style={{ flex: 1 }}>
+            <strong style={{ color: '#d97706' }}>WhatsApp Session Disconnected:</strong> Your WhatsApp connection is currently inactive or disconnected. Please go to the{' '}
+            <a
+              href="/sessions"
+              style={{
+                color: '#2563eb',
+                fontWeight: 600,
+                textDecoration: 'underline',
+              }}
+            >
+              Sessions
+            </a>{' '}
+            tab and click <strong>Start</strong> (or scan the QR code) to reconnect WhatsApp before sending messages.
+          </div>
+        </div>
+      )}
+
       <div className="tester-panels">
         <div className="compose-panel">
           <h2 className="eyebrow">{t('messageTester.compose')}</h2>
@@ -1438,7 +1473,13 @@ export function MessageTester() {
 
           <button className="send-btn" onClick={handleSend} disabled={isSendDisabled}>
             {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-            {isLoading ? t('messageTester.sending') : canWrite ? t('messageTester.send') : t('messageTester.viewOnly')}
+            {isLoading
+              ? t('messageTester.sending')
+              : !canWrite
+              ? t('messageTester.viewOnly')
+              : allSessions.length > 0 && sessions.length === 0
+              ? 'WhatsApp Disconnected (Reconnect in Sessions)'
+              : t('messageTester.send')}
           </button>
           <div className="group-send-status">
             <span role="status">{groupSendProgress ? t('messageTester.sendingProgress', groupSendProgress) : ''}</span>
