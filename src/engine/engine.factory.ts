@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IWhatsAppEngine } from './interfaces/whatsapp-engine.interface';
 import { PluginLoaderService, PluginType, IEnginePlugin, PluginManifest } from '../core/plugins';
@@ -10,6 +10,7 @@ import { createLogger } from '../common/services/logger.service';
 import { BaileysMessageStoreService } from './adapters/baileys-message-store.service';
 import { LidMappingStoreService } from './identity/lid-mapping-store.service';
 import { ChatStateStoreService } from './adapters/baileys-chat-state-store.service';
+import { BaileysAuthStoreService } from './adapters/baileys-auth-store.service';
 import { isSafeSessionName } from '../common/utils/path-safety';
 import { ensurePrivateDir } from '../common/utils/private-dir.util';
 import { baileysAuthDir, readAuthDirEntries, wwjsAuthDir } from './auth-dir-paths';
@@ -39,6 +40,7 @@ export class EngineFactory implements OnModuleInit {
     private readonly baileysMessageStore: BaileysMessageStoreService,
     private readonly lidMappingStore: LidMappingStoreService,
     private readonly chatStateStore: ChatStateStoreService,
+    @Optional() private readonly baileysAuthStore?: BaileysAuthStoreService,
   ) {
     this.engineType = this.configService.get<string>('engine.type') ?? 'baileys';
   }
@@ -82,7 +84,13 @@ export class EngineFactory implements OnModuleInit {
     };
     this.pluginLoader.registerBuiltInPlugin(
       baileysManifest,
-      new BaileysPlugin(this.baileysMessageStore, engineConfig, this.lidMappingStore, this.chatStateStore),
+      new BaileysPlugin(
+        this.baileysMessageStore,
+        engineConfig,
+        this.lidMappingStore,
+        this.chatStateStore,
+        this.baileysAuthStore,
+      ),
       engineConfig,
     );
 
@@ -176,6 +184,9 @@ export class EngineFactory implements OnModuleInit {
         key: JSON.stringify(sessionId),
       });
       return;
+    }
+    if (this.baileysAuthStore) {
+      await this.baileysAuthStore.clearSession(sessionId).catch(() => undefined);
     }
     const dirs: Array<{ engine: string; dir: string }> = [
       { engine: 'whatsapp-web.js', dir: this.wwjsAuthDir(sessionId) },

@@ -319,8 +319,21 @@ export class BaileysLifecycle {
         );
       }
     }
+    if (this.host.config.authStore) {
+      await this.host.config.authStore.restoreToDisk(this.host.config.sessionId, this.host.authPath);
+    }
     const b = await this.loadLib();
-    const { state, saveCreds } = await useAtomicMultiFileAuthState(this.host.authPath, b, this.host.logger);
+    const { state, saveCreds } = await useAtomicMultiFileAuthState(
+      this.host.authPath,
+      b,
+      this.host.logger,
+      this.host.config.authStore
+        ? {
+            saveFile: (file, data) => this.host.config.authStore?.saveFile(this.host.config.sessionId, file, data),
+            removeFile: file => this.host.config.authStore?.removeFile(this.host.config.sessionId, file),
+          }
+        : undefined,
+    );
     // A teardown during those loads already closed the dispatcher: the lookup would build a new one
     // that nothing closes and send the stopped session's requests through its proxy. One during the
     // lookup aborts it, and the latch check below bails.
@@ -1057,6 +1070,9 @@ export class BaileysLifecycle {
    */
   private async clearAuthState(): Promise<void> {
     try {
+      if (this.host.config.authStore) {
+        await this.host.config.authStore.clearSession(this.host.config.sessionId).catch(() => undefined);
+      }
       await fs.promises.rm(this.host.authPath, { recursive: true, force: true });
       this.host.logger.log('Cleared Baileys auth state', { authPath: this.host.authPath });
     } catch (err) {

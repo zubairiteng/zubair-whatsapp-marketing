@@ -40,7 +40,6 @@ import {
 } from '../hooks/queries';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useToast } from '../hooks/useToast';
-import { parseBulkRecipients } from '../utils/bulkRecipients';
 import { parseCsvRecipientsWithSummary, type CsvParseSummary } from '../utils/csvRecipientParser';
 import { PageHeader } from '../components/PageHeader';
 import { Modal } from '../components/Modal';
@@ -252,7 +251,7 @@ export function Campaigns() {
 
     const nonWhatsapp = Object.entries(resultMap).filter(([_, exists]) => !exists);
     if (nonWhatsapp.length > 0) {
-      toast.warn(`Found ${nonWhatsapp.length} contacts not registered on WhatsApp!`);
+      toast.warning(`Found ${nonWhatsapp.length} contacts not registered on WhatsApp!`);
     } else {
       toast.success('All checked contacts are active on WhatsApp!');
     }

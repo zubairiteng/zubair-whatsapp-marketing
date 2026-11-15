@@ -8,6 +8,11 @@ import { type createLogger } from '../../common/services/logger.service';
 /** The parts of the lazily loaded Baileys module the store needs (Baileys is ESM-only, never imported here). */
 export type BaileysAuthLib = Pick<typeof BaileysLib, 'initAuthCreds' | 'BufferJSON' | 'proto'>;
 
+export interface BaileysAuthStorageHook {
+  saveFile(file: string, data: string): Promise<void> | void;
+  removeFile(file: string): Promise<void> | void;
+}
+
 /**
  * Per-file operation chains, module-level like Baileys' own file locks, so an old socket's in-flight
  * save and a reconnect's read of the same file stay ordered within this process.
@@ -58,6 +63,7 @@ export async function useAtomicMultiFileAuthState(
   folder: string,
   lib: BaileysAuthLib,
   logger: Pick<ReturnType<typeof createLogger>, 'warn' | 'error'>,
+  storageHook?: BaileysAuthStorageHook,
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> {
   const { BufferJSON, proto, initAuthCreds } = lib;
   const filePath = (file: string): string => path.join(folder, file.replace(/\//g, '__').replace(/:/g, '-'));
@@ -65,6 +71,11 @@ export async function useAtomicMultiFileAuthState(
   const writeData = (data: unknown, file: string): Promise<void> => {
     const target = filePath(file);
     const json = JSON.stringify(data, BufferJSON.replacer);
+    try {
+      void storageHook?.saveFile(file, json);
+    } catch {
+      // non-fatal
+    }
     return serialized(target, () => writeFileAtomic(target, json));
   };
 
@@ -83,6 +94,11 @@ export async function useAtomicMultiFileAuthState(
 
   const removeData = (file: string): Promise<void> => {
     const target = filePath(file);
+    try {
+      void storageHook?.removeFile(file);
+    } catch {
+      // non-fatal
+    }
     return serialized(target, () => fsp.rm(target, { force: true }).catch(() => undefined));
   };
 

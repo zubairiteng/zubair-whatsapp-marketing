@@ -22,29 +22,6 @@ export const BULK_RECIPIENTS_FILE_MAX_BYTES = 2 * 1024 * 1024;
  * an uploaded file does not go through one: FileReader hands the bytes over as written, so a file
  * saved with classic Mac endings arrives as a single bare-CR line.
  */
-/**
- * Field separators a spreadsheet export uses. Deliberately NOT space, parentheses or hyphen: those
- * are phone-number formatting (`+1 (555) 010-2233` is one entry, not five), and no WhatsApp chat id
- * shape contains a comma, a semicolon or a tab.
- */
-const FIELD_SEPARATORS = /[,;\t]/;
-
-/**
- * Fewest digits a bare number may carry to be treated as a phone number, matching the bound the
- * gateway and the session form already enforce (`/^[0-9]{6,15}$/`).
- *
- * It exists because of the separator split above. A spreadsheet row like `1,628123456789` yields an
- * index column alongside the number, and without a floor that `1` would ship as `1@c.us`.
- */
-const MIN_PHONE_DIGITS = 6;
-
-/**
- * A full chat id: a numeric user part (a device suffix or group hyphen allowed) on a WhatsApp
- * server. The server list is what keeps an email out; a numeric local part alone would still let
- * `12345@qq.com` through.
- */
-const CHAT_ID = /^[0-9][0-9:-]*@(c\.us|g\.us|s\.whatsapp\.net|lid|newsletter|broadcast)$/i;
-
 import { parseCsvRecipientsWithSummary } from './csvRecipientParser';
 
 export function parseBulkRecipients(text: string): string[] {
