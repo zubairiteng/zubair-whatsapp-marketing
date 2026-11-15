@@ -672,7 +672,11 @@ export class BulkMessageService implements OnModuleInit, OnApplicationBootstrap,
       let messageResult;
       engineAsked = true;
       try {
-        messageResult = await this.sendMessage(engine, msg.chatId, msg.type, content);
+        const timeoutMs = 45_000;
+        const timeoutPromise = setTimeout(timeoutMs).then(() => {
+          throw new Error('WhatsApp message delivery timed out after 45s');
+        });
+        messageResult = await Promise.race([this.sendMessage(engine, msg.chatId, msg.type, content), timeoutPromise]);
       } catch (engineError) {
         // Same filter the single-send path applies: adapters also raise client-fault and
         // engine-state errors from inside this call, and those say nothing about the account.

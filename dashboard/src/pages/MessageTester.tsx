@@ -686,7 +686,7 @@ export function MessageTester() {
               batchId: batch.batchId,
               messageType: bulkAttachment ? bulkAttachment.kind : 'text',
               messageContent: content || (bulkAttachment ? `[${bulkAttachment.kind}]` : ''),
-              recipients: bulkRecipientList.map(phone => ({ chatId: phone, status: 'sent' as const })),
+              recipients: bulkRecipientList.map(phone => ({ chatId: phone, status: 'pending' as any })),
             });
             setRecordedChunkInfo({ campaignId: selectedCampaignId, chunkName: effectiveChunkName, chunkId: createdChunk.id });
           } catch {

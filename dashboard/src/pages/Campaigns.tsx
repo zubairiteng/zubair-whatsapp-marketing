@@ -26,12 +26,14 @@ import {
 } from 'lucide-react';
 import {
   campaignApi,
+  contactApi,
   type CampaignItem,
   type CampaignDetail,
   type ChunkAnalytics,
 } from '../services/api';
 import {
   useCampaignsQuery,
+  useSessionsQuery,
   useCreateCampaignMutation,
   useUpdateCampaignMutation,
   useDeleteCampaignMutation,
@@ -39,6 +41,7 @@ import {
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useToast } from '../hooks/useToast';
 import { parseBulkRecipients } from '../utils/bulkRecipients';
+import { parseCsvRecipientsWithSummary, type CsvParseSummary } from '../utils/csvRecipientParser';
 import { PageHeader } from '../components/PageHeader';
 import { Modal } from '../components/Modal';
 import './Campaigns.css';
@@ -50,6 +53,7 @@ export function Campaigns() {
   const navigate = useNavigate();
 
   const { data: campaigns = [], isLoading } = useCampaignsQuery();
+  const { data: sessions = [] } = useSessionsQuery();
   const createMutation = useCreateCampaignMutation();
   const updateMutation = useUpdateCampaignMutation();
   const deleteMutation = useDeleteCampaignMutation();
@@ -68,6 +72,7 @@ export function Campaigns() {
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formRecipientsText, setFormRecipientsText] = useState('');
+  const [csvSummary, setCsvSummary] = useState<CsvParseSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +82,11 @@ export function Campaigns() {
   const [expandedChunkId, setExpandedChunkId] = useState<string | null>(null);
   const [chunkAnalyticsMap, setChunkAnalyticsMap] = useState<Record<string, ChunkAnalytics>>({});
   const [loadingChunkAnalytics, setLoadingChunkAnalytics] = useState<Record<string, boolean>>({});
+
+  // WhatsApp verification state
+  const [isVerifyingContacts, setIsVerifyingContacts] = useState(false);
+  const [verificationProgress, setVerificationProgress] = useState<{ current: number; total: number } | null>(null);
+  const [verifiedMap, setVerifiedMap] = useState<Record<string, boolean>>({});
 
   // Contact list search in detail view
   const [recipientSearch, setRecipientSearch] = useState('');
@@ -182,10 +192,22 @@ export function Campaigns() {
     const reader = new FileReader();
     reader.onload = event => {
       const text = String(event.target?.result || '');
-      if (isAppend) {
-        setFormRecipientsText(prev => (prev ? prev + '\n' + text : text));
+      const summary = parseCsvRecipientsWithSummary(text);
+      setCsvSummary(summary);
+      const cleanList = summary.recipients.map(r => r.replace(/@c\.us$/, '')).join('\n');
+      if (summary.invalidCount > 0) {
+        toast.info(
+          `Extracted ${summary.validCount} valid numbers (${summary.invalidCount} invalid rows skipped)`
+        );
       } else {
-        setFormRecipientsText(text);
+        toast.success(
+          `Extracted ${summary.validCount} valid numbers ${summary.detectedColumnName ? `from "${summary.detectedColumnName}"` : ''}`
+        );
+      }
+      if (isAppend) {
+        setFormRecipientsText(prev => (prev ? prev + '\n' + cleanList : cleanList));
+      } else {
+        setFormRecipientsText(cleanList);
       }
     };
     reader.readAsText(file);
@@ -193,8 +215,65 @@ export function Campaigns() {
   };
 
   const parsedFormRecipients = useMemo(() => {
-    return parseBulkRecipients(formRecipientsText);
+    const summary = parseCsvRecipientsWithSummary(formRecipientsText);
+    return summary.recipients;
   }, [formRecipientsText]);
+
+  const verifyContactsOnWhatsApp = async () => {
+    if (!selectedCampaignDetail?.recipients?.length) return;
+    const activeSession = sessions.find(s => s.status === 'ready');
+    if (!activeSession) {
+      toast.error('No ready WhatsApp session. Please start a session first.');
+      return;
+    }
+
+    setIsVerifyingContacts(true);
+    const total = selectedCampaignDetail.recipients.length;
+    setVerificationProgress({ current: 0, total });
+    const resultMap: Record<string, boolean> = {};
+
+    let current = 0;
+    for (const chatId of selectedCampaignDetail.recipients) {
+      const bareNumber = chatId.replace(/[^0-9]/g, '');
+      try {
+        const res = await contactApi.checkNumber(activeSession.id, bareNumber);
+        resultMap[chatId] = !!res.exists;
+      } catch {
+        // on error, treat as unverified
+        resultMap[chatId] = true;
+      }
+      current++;
+      setVerificationProgress({ current, total });
+    }
+
+    setVerifiedMap(resultMap);
+    setIsVerifyingContacts(false);
+    setVerificationProgress(null);
+
+    const nonWhatsapp = Object.entries(resultMap).filter(([_, exists]) => !exists);
+    if (nonWhatsapp.length > 0) {
+      toast.warn(`Found ${nonWhatsapp.length} contacts not registered on WhatsApp!`);
+    } else {
+      toast.success('All checked contacts are active on WhatsApp!');
+    }
+  };
+
+  const handleRemoveNonWhatsappContacts = async () => {
+    if (!selectedCampaignDetail) return;
+    const activeOnly = selectedCampaignDetail.recipients.filter(r => verifiedMap[r] !== false);
+    const removedCount = selectedCampaignDetail.recipients.length - activeOnly.length;
+    try {
+      const updated = await updateMutation.mutateAsync({
+        id: selectedCampaignDetail.id,
+        body: { recipients: activeOnly },
+      });
+      setSelectedCampaignDetail(updated);
+      setVerifiedMap({});
+      toast.success(`Removed ${removedCount} inactive contacts from campaign!`);
+    } catch {
+      toast.error('Failed to update campaign contacts');
+    }
+  };
 
   const openCreateModal = () => {
     setFormName('');
@@ -842,17 +921,65 @@ export function Campaigns() {
                     onChange={e => setRecipientSearch(e.target.value)}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={verifyContactsOnWhatsApp}
+                    disabled={isVerifyingContacts || !selectedCampaignDetail?.recipients?.length}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    title="Check which numbers are registered on WhatsApp before sending"
+                  >
+                    {isVerifyingContacts ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} color="#10b981" />}
+                    <span>{isVerifyingContacts && verificationProgress ? `Checking ${verificationProgress.current}/${verificationProgress.total}...` : 'Verify on WhatsApp'}</span>
+                  </button>
                   <button className="btn-secondary" onClick={exportContacts}>
                     <Download size={16} />
                     {t('campaigns.export', 'Export CSV/TXT')}
                   </button>
-                  <button className="btn-primary" onClick={() => setIsAddNumbersModalOpen(true)}>
+                  <button className="btn-primary" onClick={() => { setCsvSummary(null); setIsAddNumbersModalOpen(true); }}>
                     <Plus size={16} />
                     {t('campaigns.addContacts', 'Add Contacts')}
                   </button>
                 </div>
               </div>
+
+              {(() => {
+                const nonWhatsappCount = Object.values(verifiedMap).filter(v => v === false).length;
+                if (nonWhatsappCount > 0) {
+                  return (
+                    <div
+                      role="alert"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        color: '#b91c1c',
+                        marginBottom: '1rem',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <div>
+                        <strong>Verification Result:</strong> Found {nonWhatsappCount} numbers not registered on WhatsApp.
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                        onClick={handleRemoveNonWhatsappContacts}
+                      >
+                        Remove {nonWhatsappCount} Inactive Numbers
+                      </button>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {filteredRecipients.length === 0 ? (
                 <div className="empty-state">
@@ -874,7 +1001,15 @@ export function Campaigns() {
                       {filteredRecipients.map((chatId, idx) => (
                         <tr key={chatId}>
                           <td style={{ color: 'var(--text-muted)', width: '60px' }}>{idx + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{chatId.replace(/@c\.us$/, '')}</td>
+                          <td style={{ fontWeight: 600 }}>
+                            {chatId.replace(/@c\.us$/, '')}
+                            {verifiedMap[chatId] === true && (
+                              <span className="badge ack" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>WA Active</span>
+                            )}
+                            {verifiedMap[chatId] === false && (
+                              <span className="badge ignored" style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#dc2626' }}>Not on WA</span>
+                            )}
+                          </td>
                           <td style={{ textAlign: 'center' }}>
                             <button
                               className="btn-danger"
@@ -965,6 +1100,26 @@ export function Campaigns() {
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 {t('campaigns.detectedContacts', 'Detected {{count}} valid numbers', { count: parsedFormRecipients.length })}
               </span>
+              {csvSummary && (
+                <div style={{
+                  marginTop: '0.4rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  backgroundColor: csvSummary.invalidCount > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                  border: `1px solid ${csvSummary.invalidCount > 0 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                  fontSize: '0.8rem',
+                }}>
+                  <div style={{ fontWeight: 600, color: csvSummary.invalidCount > 0 ? '#b45309' : '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <CheckCircle size={14} />
+                    <span>Extracted {csvSummary.validCount} valid numbers {csvSummary.detectedColumnName ? `from column "${csvSummary.detectedColumnName}"` : ''}</span>
+                  </div>
+                  {csvSummary.invalidCount > 0 && (
+                    <div style={{ marginTop: '0.2rem', color: '#b45309', fontSize: '0.75rem' }}>
+                      ⚠️ {csvSummary.invalidCount} non-phone rows skipped (e.g. empty cells, URLs or invalid digits).
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
@@ -1073,6 +1228,26 @@ export function Campaigns() {
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               {t('campaigns.detectedContacts', 'Detected {{count}} valid numbers', { count: parsedFormRecipients.length })}
             </span>
+            {csvSummary && (
+              <div style={{
+                marginTop: '0.4rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '6px',
+                backgroundColor: csvSummary.invalidCount > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                border: `1px solid ${csvSummary.invalidCount > 0 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                fontSize: '0.8rem',
+              }}>
+                <div style={{ fontWeight: 600, color: csvSummary.invalidCount > 0 ? '#b45309' : '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <CheckCircle size={14} />
+                  <span>Extracted {csvSummary.validCount} valid numbers {csvSummary.detectedColumnName ? `from column "${csvSummary.detectedColumnName}"` : ''}</span>
+                </div>
+                {csvSummary.invalidCount > 0 && (
+                  <div style={{ marginTop: '0.2rem', color: '#b45309', fontSize: '0.75rem' }}>
+                    ⚠️ {csvSummary.invalidCount} non-phone rows skipped (e.g. empty cells, URLs or invalid digits).
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
               <button className="btn-secondary" onClick={() => setIsAddNumbersModalOpen(false)}>

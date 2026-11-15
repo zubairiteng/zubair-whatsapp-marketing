@@ -45,23 +45,8 @@ const MIN_PHONE_DIGITS = 6;
  */
 const CHAT_ID = /^[0-9][0-9:-]*@(c\.us|g\.us|s\.whatsapp\.net|lid|newsletter|broadcast)$/i;
 
+import { parseCsvRecipientsWithSummary } from './csvRecipientParser';
+
 export function parseBulkRecipients(text: string): string[] {
-  const seen = new Set<string>();
-  for (const rawLine of text.split(/\r\n?|\n/)) {
-    // Split into fields before anything else. The button offers `.csv`, and a row with more than one
-    // column used to have its columns' digits CONCATENATED by the strip below: `1,628123456789`
-    // became `1628123456789@c.us`, a different number that looks entirely plausible in the
-    // recipients box. Splitting first keeps each column a candidate on its own.
-    for (const rawField of rawLine.split(FIELD_SEPARATORS)) {
-      const field = rawField.trim();
-      if (!field) continue;
-      if (field.includes('@')) {
-        if (CHAT_ID.test(field)) seen.add(field);
-        continue;
-      }
-      const digits = field.replace(/[^0-9]/g, '');
-      if (digits.length >= MIN_PHONE_DIGITS) seen.add(`${digits}@c.us`);
-    }
-  }
-  return [...seen];
+  return parseCsvRecipientsWithSummary(text).recipients;
 }

@@ -298,6 +298,58 @@ export class CampaignService implements OnApplicationBootstrap {
     }
 
     const recipients = parseJsonArray<ChunkRecipientItem>(chunk.recipients);
+
+    // Sync with live message_batches execution if this chunk is linked to a batch
+    if (chunk.batchId) {
+      try {
+        const isPg = this.campaignRepo.manager.connection.options.type === 'postgres';
+        const batchRows = await this.campaignRepo.manager.query(
+          isPg
+            ? `SELECT "status", "results", "progress" FROM "message_batches" WHERE "batch_id" = $1 LIMIT 1`
+            : `SELECT "status", "results", "progress" FROM "message_batches" WHERE "batch_id" = ? LIMIT 1`,
+          [chunk.batchId],
+        );
+        if (batchRows && batchRows[0]) {
+          const rawResults = typeof batchRows[0].results === 'string'
+            ? JSON.parse(batchRows[0].results)
+            : batchRows[0].results;
+          if (Array.isArray(rawResults)) {
+            const resultMap = new Map<string, any>(rawResults.map((r: any) => [r.chatId, r]));
+            const isBatchEnded = ['completed', 'failed', 'cancelled'].includes(batchRows[0].status);
+            let changed = false;
+
+            for (const item of recipients) {
+              const res = resultMap.get(item.chatId);
+              if (res) {
+                if (item.status !== res.status) {
+                  item.status = res.status;
+                  changed = true;
+                }
+                if (res.messageId && item.messageId !== res.messageId) {
+                  item.messageId = res.messageId;
+                  changed = true;
+                }
+                if (res.error?.message && item.error !== res.error.message) {
+                  item.error = res.error.message;
+                  changed = true;
+                }
+              } else if (isBatchEnded && item.status !== 'failed') {
+                item.status = 'failed';
+                item.error = 'Not delivered before batch ended';
+                changed = true;
+              }
+            }
+
+            if (changed) {
+              chunk.recipients = recipients;
+              await this.chunkRepo.save(chunk);
+            }
+          }
+        }
+      } catch (syncErr) {
+        this.logger.warn(`Could not sync chunk with batch ${chunk.batchId}: ${String(syncErr)}`);
+      }
+    }
     const totalRecipients = recipients.length;
     let deliveredCount = 0;
     let failedCount = 0;
