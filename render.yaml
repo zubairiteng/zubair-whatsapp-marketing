@@ -34,3 +34,5 @@ services:
         value: "false"
       - key: API_MASTER_KEY
         value: owa_k1_zubair_marketing_master_key_2026_render
+      - key: AUTO_START_SESSIONS
+        value: "true"

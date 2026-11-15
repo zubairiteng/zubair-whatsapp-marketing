@@ -306,9 +306,14 @@ export function Campaigns() {
     URL.revokeObjectURL(url);
   };
 
-  const sendInMessages = (campaign: CampaignItem | CampaignDetail) => {
+  const sendInMessages = (campaign: CampaignItem | CampaignDetail, targetRecipients?: string[]) => {
     window.sessionStorage.setItem('openwa_active_campaign_id', campaign.id);
     window.sessionStorage.setItem('openwa_active_campaign_name', campaign.name);
+    if (targetRecipients && targetRecipients.length > 0) {
+      window.sessionStorage.setItem('openwa_active_campaign_recipients', JSON.stringify(targetRecipients));
+    } else {
+      window.sessionStorage.removeItem('openwa_active_campaign_recipients');
+    }
     navigate('/message-tester');
   };
 
@@ -599,6 +604,37 @@ export function Campaigns() {
                           </div>
 
                           <div className="chunk-badges">
+                            {(() => {
+                              const sentSet = new Set((chunk.recipients || []).filter(r => r.status === 'sent').map(r => r.chatId));
+                              const unsent = (selectedCampaignDetail?.recipients || []).filter(r => !sentSet.has(r));
+                              if (sentSet.size > 0 && unsent.length > 0) {
+                                return (
+                                  <button
+                                    type="button"
+                                    className="btn-primary"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.35rem',
+                                      padding: '0.3rem 0.65rem',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 600,
+                                      backgroundColor: '#059669',
+                                      borderColor: '#059669',
+                                    }}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      sendInMessages(selectedCampaignDetail, unsent);
+                                    }}
+                                    title={`Send to ${unsent.length} unreached recipients in this campaign`}
+                                  >
+                                    <Send size={13} />
+                                    <span>Resume ({unsent.length} Unsent)</span>
+                                  </button>
+                                );
+                              }
+                              return null;
+                            })()}
                             {analytics && (
                               <>
                                 <span className="badge ack">

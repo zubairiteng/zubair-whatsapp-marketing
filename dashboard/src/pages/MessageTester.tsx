@@ -264,13 +264,31 @@ export function MessageTester() {
     if (targetCampId) {
       setSelectedCampaignId(targetCampId);
       setMessageType('bulk');
-      void campaignApi.get(targetCampId).then(camp => {
-        if (camp?.recipients?.length) {
-          setBulkRecipients(camp.recipients.join('\n'));
-        }
-        const defaultName = `Run ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const customRecipientsJson = window.sessionStorage.getItem('openwa_active_campaign_recipients');
+      let customRecipients: string[] | null = null;
+      if (customRecipientsJson) {
+        try {
+          const parsed = JSON.parse(customRecipientsJson);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            customRecipients = parsed;
+          }
+        } catch {}
+        window.sessionStorage.removeItem('openwa_active_campaign_recipients');
+      }
+
+      if (customRecipients) {
+        setBulkRecipients(customRecipients.join('\n'));
+        const defaultName = `Resume Run ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
         setChunkName(defaultName);
-      }).catch(() => {});
+      } else {
+        void campaignApi.get(targetCampId).then(camp => {
+          if (camp?.recipients?.length) {
+            setBulkRecipients(camp.recipients.join('\n'));
+          }
+          const defaultName = `Run ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          setChunkName(defaultName);
+        }).catch(() => {});
+      }
       if (campIdFromSession) {
         window.sessionStorage.removeItem('openwa_active_campaign_id');
         window.sessionStorage.removeItem('openwa_active_campaign_name');
@@ -315,10 +333,18 @@ export function MessageTester() {
 
   useEffect(() => () => groupSendAbort.current?.abort(), []);
 
+  const wakeLockRef = useRef<any>(null);
+
   const stopBatchPolling = () => {
     if (batchPollRef.current) {
       clearInterval(batchPollRef.current);
       batchPollRef.current = null;
+    }
+    if (wakeLockRef.current) {
+      try {
+        wakeLockRef.current.release();
+      } catch {}
+      wakeLockRef.current = null;
     }
   };
 
@@ -337,6 +363,14 @@ export function MessageTester() {
   const startBatchPolling = (batchSessionId: string, batchId: string) => {
     stopBatchPolling();
     if (unmountedRef.current) return;
+
+    if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+      try {
+        (navigator as any).wakeLock.request('screen').then((lock: any) => {
+          wakeLockRef.current = lock;
+        }).catch(() => {});
+      } catch {}
+    }
     const timer = setInterval(async () => {
       try {
         const status = await messageApi.getBatchStatus(batchSessionId, batchId);

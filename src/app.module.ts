@@ -49,6 +49,7 @@ import { AgentToolsModule } from './core/agent-tools/agent-tools.module';
 import { IntegrationModule } from './modules/integration/integration.module';
 import { SearchModule } from './modules/search/search.module';
 import { SqlitePermissionsBoot } from './database/sqlite-file-permissions';
+import { KeepAliveService } from './common/services/keep-alive.service';
 
 // Only import QueueModule if explicitly enabled to avoid Redis connection errors
 const queueModules: Array<Type | DynamicModule> = [];
@@ -322,6 +323,6 @@ if (dashboardServingEnabled && dashboardBuildPresent) {
   // Runs after every DataSource has initialized (they initialize eagerly in their provider
   // factories, and onApplicationBootstrap fires after every onModuleInit), tightening the SQLite
   // files that better-sqlite3 created with umask permissions back to owner-only.
-  providers: [SqlitePermissionsBoot],
+  providers: [SqlitePermissionsBoot, KeepAliveService],
 })
 export class AppModule {}
